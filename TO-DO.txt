@@ -1,0 +1,18 @@
+    \url{https://github.com/cobilab/jarvis3/blob/main/benchmark/Benchmark_FASTA.sh}
+
+    https://github.com/viromelab/tracespipe/blob/master/demos/Benchmark.sh
+
+    https://github.com/viromelab/tracespipe/blob/master/demos/Benchmark.sh
+
+    SPAAM COMMUNITY See Videos, Presentations (\url{https://www.spaam-community.org/})
+
+    Garantir reprodutividade
+
+    Assembly free    
+
+    Maria João Sousa - Github/ViromeLab
+    Ver artigo: ML aDNA (https://www.researchgate.net/profile/Michael-Hofreiter/publication/281037619_Methods_in_Molecular_Biology/links/5652d4c908ae1ef9297598c4/Methods-in-Molecular-Biology.pdf#page=199)
+
+    Usar ChatGPT para resumos (Referir como foi usado)
+
+    Apresentar palavras chave. Review Sistemático. Explicar como foi feita (MESH Search)
