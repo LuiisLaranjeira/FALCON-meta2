@@ -1,0 +1,17 @@
+timestamp;tool_name;command;real_time_sec;user_time_sec;sys_time_sec;max_ram_kb;exit_code
+28/01/2025 01:08;FALCON;FALCON -v -F -t 15 -l 47 -x falcon/top.txt reads.fq falcon/viruses_DB.fa;235.79;444.88;10.80;1903616;0
+28/01/2025 01:12;FALCON;FALCON -v -F -t 15 -l 47 -n 4 -x falcon/top.txt reads.fq falcon/viruses_DB.fa;110.91;327.08;14.71;1904128;0
+28/01/2025 01:13;FALCON;FALCON -v -F -t 15 -l 47 -n 8 -x falcon/top.txt reads.fq falcon/viruses_DB.fa;33.10;212.74;11.91;1905408;0
+28/01/2025 01:27;FALCON;FALCON -v -F -t 15 -l 47 -n 1 -x falcon/top.txt reads.fq falcon/viruses_DB.fa;802.56;777.21;24.99;1903616;0
+28/01/2025 01:30;KRAKEN;kraken2 -db viruses_kraken_db/ reads.fq;3.85;2.20;1.64;631524;0
+28/01/2025 01:31;KRAKEN;kraken2 -db viruses_kraken_db/ --threads 4 reads.fq;1.41;0.52;1.25;674072;0
+28/01/2025 01:31;KRAKEN;kraken2 -db viruses_kraken_db/ --threads 8 reads.fq;1.43;0.55;1.62;673904;0
+28/01/2025 01:36;CLARK;./CLARKV1.3.0.0/classify_metagenome.sh -O ../reads.fq -R results_clark.txt --light;2.21;0.01;2.19;1063868;0
+28/01/2025 01:37;CLARK;./CLARKV1.3.0.0/classify_metagenome.sh -O ../reads.fq -R results_clark.txt --light -n 4;2.28;1.40;1.28;1063744;0
+28/01/2025 01:37;CLARK;./CLARKV1.3.0.0/classify_metagenome.sh -O ../reads.fq -R results_clark.txt --light -n 8;4.79;9.02;5.78;1063488;0
+28/01/2025 01:48;KAIJU;kaiju -t kaiju/nodes.dmp -f kaiju/viruses.fmi -i reads.fq;181.96;148.33;37.43;803280;0
+28/01/2025 01:48;KAIJU;kaiju -t kaiju/nodes.dmp -f kaiju/viruses.fmi -i reads.fq -z 4;16.91;59.69;3.56;809808;0
+28/01/2025 01:49;KAIJU;kaiju -t kaiju/nodes.dmp -f kaiju/viruses.fmi -i reads.fq -z 8;47.51;292.57;29.97;816592;0
+28/01/2025 01:56;CENTRIFUGE;centrifuge -x centrifuge/viruses_db -q reads.fq;4.44;3.71;0.71;271920;0
+28/01/2025 01:56;CENTRIFUGE;centrifuge -p 4 -x centrifuge/viruses_db -q reads.fq;1.49;2.10;1.12;280112;0
+28/01/2025 01:56;CENTRIFUGE;centrifuge -p 8 -x centrifuge/viruses_db -q reads.fq;1.36;1.84;0.94;290736;0

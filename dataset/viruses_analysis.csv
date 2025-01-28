@@ -1,0 +1,36 @@
+sep=,
+Name,TaxID,Lineage,Count,Proportion_All(%),Proportion_Classified(%)
+Bievrevirus bv4A7,2844174,Viruses;Uroviricota;Caudoviricetes;;;Bievrevirus,2,0.010001,0.0119076
+Chaoshanvirus ZPAH34,3059856,Viruses;Uroviricota;Caudoviricetes;;;Chaoshanvirus,1,0.0050005,0.0059538
+Escherichia phage TL-2011b,1124654,Viruses;Uroviricota;Caudoviricetes;;;,2,0.010001,0.0119076
+Escherichia phage vB_EcoM-Ro157c2YLVW,2178932,Viruses;Uroviricota;Caudoviricetes;;;Punavirus,1,0.0050005,0.0059538
+Escherichia virus DE3,2169967,Viruses;Uroviricota;Caudoviricetes;;;Lambdavirus,3,0.0150015,0.0178614
+Gemsvirus gv5004652,2955946,Viruses;Uroviricota;Caudoviricetes;;Peduoviridae;Gemsvirus,3,0.0150015,0.0178614
+Gihfavirus pelohabitans,2844652,Viruses;Lenarviricota;Leviviricetes;Timlovirales;Steitzviridae;Gihfavirus,1,0.0050005,0.0059538
+Glaedevirus gv2H10,2844173,Viruses;Uroviricota;Caudoviricetes;;;Glaedevirus,8,0.040004,0.0476304
+Ithacavirus SP058,2170216,Viruses;Uroviricota;Caudoviricetes;;Schitoviridae;Ithacavirus,1,0.0050005,0.0059538
+Jouyvirus ev207,2844249,Viruses;Uroviricota;Caudoviricetes;;;Jouyvirus,1,0.0050005,0.0059538
+Jouyvirus jv1H12,2844170,Viruses;Uroviricota;Caudoviricetes;;;Jouyvirus,2,0.010001,0.0119076
+Kinglevirus lutadaptatum,2845070,Viruses;Lenarviricota;Leviviricetes;Timlovirales;Steitzviridae;Kinglevirus,2,0.010001,0.0119076
+Kwaitsingvirus HK446,2169921,Viruses;Uroviricota;Caudoviricetes;;;Kwaitsingvirus,1,0.0050005,0.0059538
+Lambdavirus HK629,2169968,Viruses;Uroviricota;Caudoviricetes;;;Lambdavirus,1,0.0050005,0.0059538
+Lambdavirus lvO276,2844130,Viruses;Uroviricota;Caudoviricetes;;;Lambdavirus,1,0.0050005,0.0059538
+Lederbergvirus Sf6,10761,Viruses;Uroviricota;Caudoviricetes;;;Lederbergvirus,1,0.0050005,0.0059538
+Nesevirus ev243,2844251,Viruses;Uroviricota;Caudoviricetes;;;Nesevirus,4,0.020002,0.0238152
+Nesevirus nv2G7b,2844172,Viruses;Uroviricota;Caudoviricetes;;;Nesevirus,5,0.0250025,0.029769
+Orthoebolavirus zairense,3052462,Viruses;Negarnaviricota;Monjiviricetes;Mononegavirales;Filoviridae;Orthoebolavirus,16714,83.5784,99.5118
+Pankowvirus YYZ2008,2844135,Viruses;Uroviricota;Caudoviricetes;;;Pankowvirus,4,0.020002,0.0238152
+Pankowvirus pv1717,2844169,Viruses;Uroviricota;Caudoviricetes;;;Pankowvirus,2,0.010001,0.0119076
+Punavirus P1,10678,Viruses;Uroviricota;Caudoviricetes;;;Punavirus,11,0.0550055,0.0654918
+Punavirus RCS47,2560452,Viruses;Uroviricota;Caudoviricetes;;;Punavirus,4,0.020002,0.0238152
+Radostvirus ev099,2844247,Viruses;Uroviricota;Caudoviricetes;;;Radostvirus,1,0.0050005,0.0059538
+Salmonella phage SEN22,1647458,Viruses;Uroviricota;Caudoviricetes;;;Lederbergvirus,1,0.0050005,0.0059538
+Salmonella phage SPN9CC,1127357,Viruses;Uroviricota;Caudoviricetes;;;Lederbergvirus,1,0.0050005,0.0059538
+Sawaravirus WGPS2,2844234,Viruses;Uroviricota;Caudoviricetes;;;Sawaravirus,8,0.040004,0.0476304
+Shigella phage SfII,66284,Viruses;Uroviricota;Caudoviricetes;;;,4,0.020002,0.0238152
+Shigella phage SfIV,1407493,Viruses;Uroviricota;Caudoviricetes;;;,1,0.0050005,0.0059538
+Traversvirus F451,2844194,Viruses;Uroviricota;Caudoviricetes;;;Traversvirus,2,0.010001,0.0119076
+Traversvirus WGPS9,2844237,Viruses;Uroviricota;Caudoviricetes;;;Traversvirus,1,0.0050005,0.0059538
+Wadgaonvirus wv5004651,2956672,Viruses;Uroviricota;Caudoviricetes;;Peduoviridae;Wadgaonvirus,1,0.0050005,0.0059538
+Xuanwuvirus xv520873,2844179,Viruses;Uroviricota;Caudoviricetes;;Peduoviridae;Xuanwuvirus,1,0.0050005,0.0059538
+UNKNOWN,UNKNOWN,UNKNOWN,3202,16.0116,-

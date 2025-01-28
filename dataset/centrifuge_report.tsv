@@ -1,0 +1,58 @@
+name	taxID	taxRank	genomeSize	numReads	numUniqueReads	abundance
+Enterobacteria phage P7	10682	leaf	101660	2	0	0.0
+Enterobacteria phage SfV	55884	species	37074	3	0	0.0
+Shigella phage SfII	66284	species	41475	2	0	0.0
+Enterobacteria phage phiP27	103807	species	42575	1	1	0.0
+Enterobacteria phage HK620	155148	leaf	38297	1	0	0.0
+Zaire ebolavirus	186538	leaf	18959	16730	16730	1
+Escherichia phage HK106	432198	leaf	41468	1	0	0.0
+Escherichia phage DE3	482822	leaf	42925	6	3	0.0
+Stx2-converting phage 1717	563769	leaf	62147	5	5	0.0
+Enterobacteria phage YYZ-2008	564886	leaf	54896	5	4	0.0
+Erwinia phage phiEaH2	1029988	leaf	243050	1	1	0.0
+Mycobacterium phage Rey	1034115	leaf	83724	1	1	0.0
+Enterobacteria phage IME10	1090133	species	39646	1	0	0.0
+Salmonella phage 9NA	1113547	leaf	52869	1	1	0.0
+Escherichia phage TL-2011b	1124654	species	44784	2	2	0.0
+Escherichia phage HK630	1147146	leaf	47090	2	0	0.0
+Escherichia phage HK629	1147148	leaf	47288	2	0	0.0
+Enterobacteria phage mEp460	1147152	species	44510	2	1	0.0
+Enterobacteria phage mEp390	1147158	species	40029	1	1	0.0
+Enterobacteria phage SfI	1225789	species	38389	1	0	0.0
+Stx2-converting phage Stx2a_WGPS2	1226260	leaf	58326	10	9	0.0
+Pandoravirus salinus	1349410	species	2473870	1	1	0.0
+Shigella phage SfIV	1407493	species	39758	8	3	0.0
+Escherichia phage RCS47	1590550	leaf	115154	3	2	0.0
+Salmonella phage SEN22	1647458	species	41338	1	1	0.0
+Escherichia phage pro483	1649240	leaf	29237	1	1	0.0
+Salmonella phage SJ46	1815968	leaf	103445	3	1	0.0
+Pectobacterium phage vB_PatP_CB1	1958917	leaf	76041	1	0	0.0
+Pectobacterium phage vB_PatP_CB4	1958919	leaf	76621	1	0	0.0
+Klebsiella phage 4LV2017	1960658	leaf	33540	1	1	0.0
+Ralstonia phage phiRSL1	1980924	leaf	231255	1	1	0.0
+Traversvirus	1981157	genus	60750	2	2	0.0
+Escherichia phage D6	2014434	species	91159	1	1	0.0
+Raoultella phage Ro1	2053702	leaf	145759	1	0	0.0
+Cetovirus ceto	2060092	species	128241	1	0	0.0
+Enterobacteria phage O276	2282412	leaf	41969	3	0	0.0
+Proteus phage Mydo	2483610	leaf	145127	1	0	0.0
+Escherichia phage Lambda	2681611	leaf	48502	2	0	0.0
+Escherichia phage HK97	2681617	leaf	39732	1	0	0.0
+Escherichia phage 500465-1	2716351	leaf	39179	1	1	0.0
+Escherichia phage 500465-2	2716352	leaf	33041	12	12	0.0
+Escherichia phage 520873	2716354	leaf	37583	2	2	0.0
+Caudoviricetes	2731619	class	74735	1	1	0.0
+ssRNA phage SRR5466337_3	2786389	leaf	3924	2	2	0.0
+ssRNA phage SRR5466369_2	2786405	leaf	4387	2	2	0.0
+Escherichia phage 1H12	2847055	leaf	46703	2	1	0.0
+Escherichia phage 2G7b	2847057	leaf	47142	9	2	0.0
+Escherichia phage 2H10	2847058	leaf	46288	15	13	0.0
+Escherichia phage 4A7	2847059	leaf	49168	2	2	0.0
+Escherichia phage ev099	2847061	leaf	47224	3	1	0.0
+Escherichia phage ev207	2847062	leaf	46685	2	0	0.0
+Escherichia phage ev243	2847063	leaf	45560	10	2	0.0
+Kosakonia phage Kc263	2863194	leaf	253740	2	2	0.0
+Kosakonia phage Kc283	2863195	leaf	76232	1	0	0.0
+Escherichia phage P1	2886926	leaf	94800	11	10	0.0
+Aeromonas phage pAEv1810	2908744	leaf	235066	1	1	0.0
+Thalassavirus	2948922	genus	126342	1	0	0.0
