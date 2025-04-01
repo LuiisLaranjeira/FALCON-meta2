@@ -85,8 +85,8 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "/home/ll/falcon/src/cmake-build-debug",
-		"source" : "/home/ll/falcon/src"
+		"build" : "/home/ll/FALCON-meta2/src/cmake-build-debug",
+		"source" : "/home/ll/FALCON-meta2/src"
 	},
 	"version" : 
 	{

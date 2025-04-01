@@ -1,4 +1,4 @@
-CMakeFiles/FALCON.dir/buffer.c.o: /home/ll/falcon/src/buffer.c \
+CMakeFiles/FALCON.dir/buffer.c.o: /home/ll/FALCON-meta2/src/buffer.c \
  /usr/include/stdc-predef.h /usr/include/string.h \
  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
  /usr/include/features.h /usr/include/features-time64.h \
@@ -14,7 +14,7 @@ CMakeFiles/FALCON.dir/buffer.c.o: /home/ll/falcon/src/buffer.c \
  /usr/include/strings.h \
  /usr/include/x86_64-linux-gnu/bits/strings_fortified.h \
  /usr/include/x86_64-linux-gnu/bits/string_fortified.h \
- /home/ll/falcon/src/buffer.h /home/ll/falcon/src/defs.h \
+ /home/ll/FALCON-meta2/src/buffer.h /home/ll/FALCON-meta2/src/defs.h \
  /usr/lib/gcc/x86_64-linux-gnu/13/include/stdint.h /usr/include/stdint.h \
  /usr/include/x86_64-linux-gnu/bits/types.h \
  /usr/include/x86_64-linux-gnu/bits/typesizes.h \
@@ -32,7 +32,7 @@ CMakeFiles/FALCON.dir/buffer.c.o: /home/ll/falcon/src/buffer.c \
  /usr/include/x86_64-linux-gnu/bits/unistd.h \
  /usr/include/x86_64-linux-gnu/bits/unistd-decl.h \
  /usr/include/x86_64-linux-gnu/bits/unistd_ext.h \
- /home/ll/falcon/src/mem.h /usr/include/stdio.h \
+ /home/ll/FALCON-meta2/src/mem.h /usr/include/stdio.h \
  /usr/lib/gcc/x86_64-linux-gnu/13/include/stdarg.h \
  /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h \

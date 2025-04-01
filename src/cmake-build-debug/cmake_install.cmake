@@ -1,4 +1,4 @@
-# Install script for directory: /home/ll/falcon/src
+# Install script for directory: /home/ll/FALCON-meta2/src
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -57,6 +57,6 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-  file(WRITE "/home/ll/falcon/src/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
+  file(WRITE "/home/ll/FALCON-meta2/src/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()
