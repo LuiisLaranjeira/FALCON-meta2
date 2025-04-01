@@ -1,0 +1,37 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/FALCON.dir/buffer.c.o"
+  "CMakeFiles/FALCON.dir/buffer.c.o.d"
+  "CMakeFiles/FALCON.dir/common.c.o"
+  "CMakeFiles/FALCON.dir/common.c.o.d"
+  "CMakeFiles/FALCON.dir/falcon.c.o"
+  "CMakeFiles/FALCON.dir/falcon.c.o.d"
+  "CMakeFiles/FALCON.dir/keys.c.o"
+  "CMakeFiles/FALCON.dir/keys.c.o.d"
+  "CMakeFiles/FALCON.dir/kmodels.c.o"
+  "CMakeFiles/FALCON.dir/kmodels.c.o.d"
+  "CMakeFiles/FALCON.dir/levels.c.o"
+  "CMakeFiles/FALCON.dir/levels.c.o.d"
+  "CMakeFiles/FALCON.dir/mem.c.o"
+  "CMakeFiles/FALCON.dir/mem.c.o.d"
+  "CMakeFiles/FALCON.dir/models.c.o"
+  "CMakeFiles/FALCON.dir/models.c.o.d"
+  "CMakeFiles/FALCON.dir/msg.c.o"
+  "CMakeFiles/FALCON.dir/msg.c.o.d"
+  "CMakeFiles/FALCON.dir/parser.c.o"
+  "CMakeFiles/FALCON.dir/parser.c.o.d"
+  "CMakeFiles/FALCON.dir/pmodels.c.o"
+  "CMakeFiles/FALCON.dir/pmodels.c.o.d"
+  "CMakeFiles/FALCON.dir/stream.c.o"
+  "CMakeFiles/FALCON.dir/stream.c.o.d"
+  "CMakeFiles/FALCON.dir/time.c.o"
+  "CMakeFiles/FALCON.dir/time.c.o.d"
+  "CMakeFiles/FALCON.dir/top.c.o"
+  "CMakeFiles/FALCON.dir/top.c.o.d"
+  "FALCON"
+  "FALCON.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang C)
+  include(CMakeFiles/FALCON.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

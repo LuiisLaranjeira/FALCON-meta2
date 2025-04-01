@@ -1,0 +1,7 @@
+/home/ll/falcon/src/cmake-build-debug/CMakeFiles/FALCON.dir
+/home/ll/falcon/src/cmake-build-debug/CMakeFiles/FALCON-filter.dir
+/home/ll/falcon/src/cmake-build-debug/CMakeFiles/FALCON-filter-visual.dir
+/home/ll/falcon/src/cmake-build-debug/CMakeFiles/FALCON-inter.dir
+/home/ll/falcon/src/cmake-build-debug/CMakeFiles/FALCON-inter-visual.dir
+/home/ll/falcon/src/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/ll/falcon/src/cmake-build-debug/CMakeFiles/rebuild_cache.dir
