@@ -1,0 +1,91 @@
+ll@DESKTOP-5S9JNDB:~/falcon/test$ ./FALCON falcon -v -F -t 15 -l 47 -x top.txt reads.fq VDB.fa
+
+==[ CONFIGURATION ]=================
+Verbose mode ....................... yes
+Force mode ......................... yes
+Local similarity mode .............. no
+Compression level .................. 47
+Sub-sampling ....................... 1
+Number of threads .................. 2
+Top size ........................... 15
+Reference model 1:
+  [+] Context order ................ 6
+  [+] Alpha denominator ............ 1
+  [+] Inverted repeats ............. yes
+  [+] Allowable substitutions ...... 0
+Reference model 2:
+  [+] Context order ................ 11
+  [+] Alpha denominator ............ 10
+  [+] Inverted repeats ............. yes
+  [+] Allowable substitutions ...... 0
+Reference model 3:
+  [+] Context order ................ 18
+  [+] Alpha denominator ............ 500
+  [+] Inverted repeats ............. yes
+  [+] Allowable substitutions ...... 5
+  [+] Substitutions alpha den ...... 10
+Gamma .............................. 0.85
+Maximum Collisions ................. 10
+Output top filename ................ top.txt
+Number of metagenomic files ........ 1
+  [+] Metagenomic filename ......... reads.fq
+Database filename .................. VDB.fa
+
+==[ PROCESSING ]====================
+Segmentation fault (core dumped)
+ll@DESKTOP-5S9JNDB:~/falcon/test$ ./FALCON falcon -h
+                                                                         
+                                                                         
+      ███████╗ █████╗ ██╗      ██████╗ ██████╗ ███╗   ██╗                
+      ██╔════╝██╔══██╗██║     ██╔════╝██╔═══██╗████╗  ██║                
+      █████╗  ███████║██║     ██║     ██║   ██║██╔██╗ ██║                
+      ██╔══╝  ██╔══██║██║     ██║     ██║   ██║██║╚██╗██║                
+      ██║     ██║  ██║███████╗╚██████╗╚██████╔╝██║ ╚████║                
+      ╚═╝     ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝                
+                                                                         
+NAME                                                                     
+      FALCON v3.2: a tool to infer metagenomic composition.            
+                                                                         
+SYNOPSIS                                                                 
+      FALCON falcon [OPTION]... [FILE1]:[FILE2]:... [FILE]               
+                                                                         
+SAMPLE                                                                   
+      FALCON falcon -v -F -l 47 -Z -y pro.com reads1.fq:reads2.fq DB.fa  
+                                                                         
+DESCRIPTION                                                              
+      It infers metagenomic sample composition of sequenced reads.       
+      The core of the method uses a cooperation between multiple         
+      context and tolerant context models with several depths.           
+      The reference sequences must be in a multi-FASTA format.           
+      The sequenced reads must be trimmed and in FASTQ format.           
+                                                                         
+      Non-mandatory arguments:                                           
+                                                                         
+      -h                   give this help,                               
+      -F                   force mode (overwrites top file),             
+      -V                   display version number,                       
+      -v                   verbose mode (more information),              
+      -Z                   database local similarity,                    
+      -s                   show compression levels,                      
+                                                                         
+      -l <level>           compression level [1;47],                    
+      -p <sample>          subsampling (default: 1),                    
+      -t <top>             top of similarity (default: 20),              
+      -n <nThreads>        number of threads (default: 2),              
+                                                                         
+      -x <FILE>            similarity top filename,                      
+      -y <FILE>            profile filename (-Z must be on).             
+                                                                         
+      Mandatory arguments:                                               
+                                                                         
+      [FILE1]:[FILE2]:...  metagenomic filename (FASTQ),                 
+                           Use ":" for splitting files.                
+                                                                         
+      [FILE]               database filename (Multi-FASTA).              
+                                                                         
+COPYRIGHT                                                                
+      Copyright (C) 2014-2025, IEETA, University of Aveiro.              
+      This is a Free software, under GPLv3. You may redistribute         
+      copies of it under the terms of the GNU - General Public           
+      License v3 <http://www.gnu.org/licenses/gpl.html>.                 
+                                             
