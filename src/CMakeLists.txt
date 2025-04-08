@@ -9,7 +9,7 @@ project (falcon)
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 SET(RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-SET(CMAKE_BUILD_TYPE Release)
+SET(CMAKE_BUILD_TYPE Debug)
 
 add_executable (FALCON falcon.c mem.c time.c msg.c parser.c common.c buffer.c stream.c levels.c models.c pmodels.c kmodels.c top.c defs.h param.h keys.c)
 add_executable (FALCON-filter falcon-filter.c mem.c time.c msg.c parser.c common.c buffer.c pmodels.c models.c kmodels.c filters.c defs.h param.h) 

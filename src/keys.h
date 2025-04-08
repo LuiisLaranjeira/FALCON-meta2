@@ -24,7 +24,7 @@ K_STRUCT;
 static K_STRUCT LT_KEYS[] = 
   { 
     { "help"          , K1  },  // HELP MENU
-    { "falcon"        , K2  },  // Main FALCON functionality
+    { "meta"          , K2  },  // Main FALCON functionality
     { "filter"        , K3  },  // Filter and segment regions identified by FALCON
     { "fvisual"       , K4  },  // Create visualization of filtered regions
     { "inter"         , K5  },  // Evaluate similarity of genomes

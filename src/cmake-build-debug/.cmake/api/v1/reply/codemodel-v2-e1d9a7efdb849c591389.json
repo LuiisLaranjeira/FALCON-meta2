@@ -1,0 +1,96 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.4"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "falcon",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "FALCON::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-FALCON-Debug-6b9e429d2173ea4e9633.json",
+					"name" : "FALCON",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "FALCON-filter::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-FALCON-filter-Debug-410b6c75e868c163290d.json",
+					"name" : "FALCON-filter",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "FALCON-filter-visual::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-FALCON-filter-visual-Debug-a6f5b183b89576f6dc3a.json",
+					"name" : "FALCON-filter-visual",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "FALCON-inter::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-FALCON-inter-Debug-adf1bd06c049033d3c7a.json",
+					"name" : "FALCON-inter",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "FALCON-inter-visual::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-FALCON-inter-visual-Debug-38fe33b1d7775fe224cc.json",
+					"name" : "FALCON-inter-visual",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/ll/FALCON-meta2/src/cmake-build-debug",
+		"source" : "/home/ll/FALCON-meta2/src"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

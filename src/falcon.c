@@ -789,8 +789,8 @@ void LoadReferenceWKM(char *refName){
 void CompressAction(Threads *T, char *refName, char *baseName){
   pthread_t t[P->nThreads];
   uint32_t n;
- 
-  #ifdef KMODELSUSAGE
+
+#ifdef KMODELSUSAGE
   KModels = (KMODEL **) Malloc(P->nModels * sizeof(KMODEL *));
   for(n = 0 ; n < P->nModels ; ++n)
     KModels[n] = CreateKModel(T[0].model[n].ctx, T[0].model[n].den,
@@ -799,11 +799,11 @@ void CompressAction(Threads *T, char *refName, char *baseName){
   fprintf(stderr, "  [+] Loading metagenomic file ..... ");
   LoadReferenceWKM(refName);
   fprintf(stderr, "Done!\n");
-  #else
+#else
   Models = (CModel **) Malloc(P->nModels * sizeof(CModel *));
   for(n = 0 ; n < P->nModels ; ++n)
-    Models[n] = CreateCModel(T[0].model[n].ctx, T[0].model[n].den, 
-    T[0].model[n].ir, REFERENCE, P->col, T[0].model[n].edits, 
+    Models[n] = CreateCModel(T[0].model[n].ctx, T[0].model[n].den,
+    T[0].model[n].ir, REFERENCE, P->col, T[0].model[n].edits,
     T[0].model[n].eDen);
   fprintf(stderr, "  [+] Loading %u metagenomic file(s):\n", P->nFiles);
 
@@ -811,9 +811,9 @@ void CompressAction(Threads *T, char *refName, char *baseName){
     fprintf(stderr, "      [+] Loading %u ... ", n+1);
     LoadReference(P->files[n]);
     fprintf(stderr, "Done! \n");
-    }
+  }
   fprintf(stderr, "  [+] Done! Learning phase complete!\n");
-  #endif
+#endif
 
   fprintf(stderr, "  [+] Compressing database ......... ");
   for(n = 0 ; n < P->nThreads ; ++n)
@@ -821,300 +821,53 @@ void CompressAction(Threads *T, char *refName, char *baseName){
   for(n = 0 ; n < P->nThreads ; ++n) // DO NOT JOIN FORS!
     pthread_join(t[n+1], NULL);
   fprintf(stderr, "Done!\n");
-  }
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // - - - - - - - - - - - - - - - - - M A I N - - - - - - - - - - - - - - - - -
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-// int32_t Falcon(Parameters *P, Threads *T, uint32_t topSize, char *refName, char *baseName){
-//
-//   FILE *OUTPUT = NULL;
-//   if(!P->force)
-//     FAccessWPerm(P->output);
-//   OUTPUT = Fopen(P->output, "w");
-//
-//   #ifdef LOCAL_SIMILARITY
-//   FILE *OUTLOC = NULL;
-//   if(P->local == 1){
-//     if(!P->force)
-//       FAccessWPerm(P->outLoc);
-//     OUTLOC = Fopen(P->outLoc, "w");
-//     }
-//   #endif
-//
-//
-//   fprintf(stderr, "==[ PROCESSING ]====================\n");
-//   TIME *Time = CreateClock(clock());
-//   CompressAction(T, argv[argc-2], P->base);
-//
-//   k = 0;
-//   P->top = CreateTop(topSize * P->nThreads);
-//   for(ref = 0 ; ref < P->nThreads ; ++ref){
-//     for(n = 0 ; n < T[ref].top->size-1 ; ++n){
-//       P->top->V[k].value = T[ref].top->V[n].value;
-//       P->top->V[k].size  = T[ref].top->V[n].size;
-//       #ifdef LOCAL_SIMILARITY
-//       if(P->local == 1){
-//         P->top->V[k].iPos = T[ref].top->V[n].iPos;
-//         P->top->V[k].ePos = T[ref].top->V[n].ePos;
-//         }
-//       #endif
-//       CopyStringPart(P->top->V[k].name, T[ref].top->V[n].name);
-//       ++k;
-//       }
-//     }
-//
-//   fprintf(stderr, "  [+] Sorting top .................. ");
-//   qsort(P->top->V, k, sizeof(VT), SortByValue);
-//   fprintf(stderr, "Done!\n");
-//
-//   fprintf(stderr, "  [+] Printing to output file ...... ");
-//   #ifdef LOCAL_SIMILARITY
-//   if(P->local == 1)
-//     PrintTopWP(OUTPUT, P->top, topSize);
-//   else
-//     PrintTop(OUTPUT, P->top, topSize);
-//   #else
-//   PrintTop(OUTPUT, P->top, topSize);
-//   #endif
-//   fclose(OUTPUT);
-//   fprintf(stderr, "Done!\n");
-//
-//   #ifdef LOCAL_SIMILARITY
-//   if(P->local == 1){
-//     fprintf(stderr, "  [+] Running local similarity:\n");
-//     #ifdef KMODELSUSAGE
-//     LocalComplexityWKM(T[0], P->top, topSize, OUTLOC);
-//     #else
-//     LocalComplexity(T[0], P->top, topSize, OUTLOC);
-//     #endif
-//     fclose(OUTLOC);
-//     }
-//   #endif
-//
-//   fprintf(stderr, "  [+] Freeing compression models ... ");
-//   for(n = 0 ; n < P->nModels ; ++n)
-//     #ifdef KMODELSUSAGE
-//     FreeKModel(KModels[n]);
-//     #else
-//     FreeCModel(Models[n]);
-//     #endif
-//   #ifdef KMODELSUSAGE
-//   Free(KModels);
-//   #else
-//   Free(Models);
-//   #endif
-//   fprintf(stderr, "Done!\n");
-//
-//   StopTimeNDRM(Time, clock());
-//   fprintf(stderr, "\n");
-//
-//   fprintf(stderr, "==[ RESULTS ]=======================\n");
-//   if(topSize <= 100){
-//     #ifdef LOCAL_SIMILARITY
-//     if(P->local == 1)
-//       PrintTopInfoWP(P->top, topSize);
-//     else
-//       PrintTopInfo(P->top, topSize);
-//     #else
-//     PrintTopInfo(P->top, topSize);
-//     #endif
-//     }
-//   else{
-//     fprintf(stderr, "Top results have been sent to file.\n");
-//     }
-//   fprintf(stderr, "\n");
-//
-//   fprintf(stderr, "==[ STATISTICS ]====================\n");
-//   StopCalcAll(Time, clock());
-//   fprintf(stderr, "\n");
-//
-//   RemoveClock(Time);
-//   DeleteTop(P->top);
-//   for(ref = 0 ; ref < P->nThreads ; ++ref){
-//     DeleteTop(T[ref].top);
-//     Free(T[ref].model);
-//     }
-//   Free(T);
-//
-//   return EXIT_SUCCESS;
-//   }
-//
-
-void RunFalcon(Parameters *P, Threads *T, uint32_t topSize, char *refName, char *baseName) {
-  // This would call the main functionality from falcon.c
-  // For example: CompressAction(T, refName, baseName);
-  fprintf(stderr, "  [+] Running FALCON main function...\n");
-}
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-// void P_Falcon(char **p, int c)
-// {
-//   char **xargv, *xpl = NULL;
-//   int32_t n, xargc = 0;
-//   uint32_t k, col, ref, topSize;
-//   double gamma;
-//   Threads *T;
-//
-//   Parameters *MAP = (Parameters *) Calloc(1, sizeof(Parameters));
-//
-//   MAP->help        = ArgsState  (DEFAULT_HELP,    p, c, "-h", "--help");
-//   MAP->verbose     = ArgsState  (DEFAULT_VERBOSE, p, c, "-v", "--verbose");
-//   MAP->force       = ArgsState  (DEFAULT_FORCE,   p, c, "-F", "--force");
-//   #ifdef LOCAL_SIMILARITY
-//   MAP->local       = ArgsState  (DEFAULT_LOCAL,   p, c, "-Z", "--local");
-//   #endif
-//   MAP->sample      = ArgsNum    (DEFAULT_SAMPLE,  p, c, "-p", MIN_SAP, MAX_SAP);
-//   MAP->level       = ArgsNum    (0,               p, c, "-l", MIN_LEV, MAX_LEV);
-//   topSize          = ArgsNum    (DEF_TOP,         p, c, "-t", MIN_TOP, MAX_TOP);
-//   MAP->nThreads    = ArgsNum    (DEFAULT_THREADS, p, c, "-n", MIN_THREADS,
-//                            MAX_THREADS);
-//
-//   MAP->nModels = 0;
-//   for(n = 1 ; n < c ; ++n)
-//     if(strcmp(p[n], "-m") == 0)
-//       MAP->nModels += 1;
-//
-//   if(MAP->nModels == 0 && MAP->level == 0)
-//     MAP->level = DEFAULT_LEVEL;
-//
-//   if(MAP->level != 0){
-//     xpl = GetLevels(MAP->level);
-//     xargc = StrToArgv(xpl, &xargv);
-//     for(n = 1 ; n < xargc ; ++n)
-//       if(strcmp(xargv[n], "-m") == 0)
-//         MAP->nModels += 1;
-//   }
-//
-//   if(MAP->nModels == 0){
-//     fprintf(stderr, "Error: at least you need to use a context model!\n");
-//     Free(MAP);
-//   }
-//
-//   // READ MODEL PARAMETERS FROM XARGS & ARGS
-//   T = (Threads *) Calloc(MAP->nThreads, sizeof(Threads));
-//   for(ref = 0 ; ref < MAP->nThreads ; ++ref){
-//     T[ref].model = (ModelPar *) Calloc(MAP->nModels, sizeof(ModelPar));
-//     T[ref].id    = ref;
-//     T[ref].top   = CreateTop(topSize);
-//     k = 0;
-//     for(n = 1 ; n < c ; ++n)
-//       if(strcmp(p[n], "-m") == 0)
-//         T[ref].model[k++] = ArgsUniqModel(p[n+1], 0);
-//     if(MAP->level != 0){
-//       for(n = 1 ; n < xargc ; ++n)
-//         if(strcmp(xargv[n], "-m") == 0)
-//           T[ref].model[k++] = ArgsUniqModel(xargv[n+1], 0);
-//     }
-//   }
-//
-//   gamma = DEFAULT_GAMMA;
-//   for(n = 1 ; n < xargc ; ++n)
-//     if(strcmp(xargv[n], "-g") == 0)
-//       gamma = atof(xargv[n+1]);
-//
-//   col = MAX_COLLISIONS;
-//   for(n = 1 ; n < xargc ; ++n)
-//     if(strcmp(xargv[n], "-c") == 0)
-//       col = atoi(xargv[n+1]);
-//
-//   MAP->gamma     = ArgsDouble (DEFAULT_GAMMA, p, c, "-g");
-//   MAP->gamma     = ((int) (MAP->gamma * 65536)) / 65536.0;
-//   MAP->col       = ArgsNum    (MAX_COLLISIONS, p, c, "-c", 1, 253);
-//   MAP->output    = ArgsFileGen(p, c, "-x", "top", ".csv");
-//   #ifdef LOCAL_SIMILARITY
-//   if(MAP->local == 1)
-//     {
-//     MAP->outLoc  = ArgsFileGen(p, c, "-y", "local", ".fal");
-//     }
-//   #endif
-//
-//   FILE *OUTPUT = NULL;
-//   if(!P->force)
-//     FAccessWPerm(P->output);
-//   OUTPUT = Fopen(P->output, "w");
-//
-//   #ifdef LOCAL_SIMILARITY
-//   FILE *OUTLOC = NULL;
-//   if(P->local == 1){
-//     if(!P->force)
-//       FAccessWPerm(P->outLoc);
-//     OUTLOC = Fopen(P->outLoc, "w");
-//   }
-//   #endif
-//
-//   MAP->base      = p[c-1];
-//   MAP->nFiles    = ReadFNames (P, p[c-2], 0);
-//   fprintf(stderr, "\n");
-//
-//   if(MAP->verbose) PrintArgs(P, T[0], p[c-2], p[c-1], topSize);
-//
-//     // Call the original main function
-//   fprintf(stderr, "==[ PROCESSING ]====================\n");
-//   TIME *Time = CreateClock(clock());
-//
-//   RunFalcon(P, T, topSize, p[c-2], P->base);
-//
-//   StopTimeNDRM(Time, clock());
-//   RemoveClock(Time);
-//
-//   // Clean up
-//   for(ref = 0 ; ref < P->nThreads ; ++ref)
-//     {
-//     DeleteTop(T[ref].top);
-//     Free(T[ref].model);
-//     }
-//   Free(T);
-//   free(MAP);
-// }
-
-void P_Falcon(char **p, int c)
-{
-  char     **xargv, *xpl = NULL;
+int32_t P_Falcon(char **argv, int argc){
+  char     **p = *&argv, **xargv, *xpl = NULL;
   int32_t  xargc = 0;
   uint32_t n, k, col, ref, topSize;
   double   gamma;
   Threads  *T;
-  //   MAP->help        = ArgsState  (DEFAULT_HELP,    p, c, "-h", "--help");
-  //   MAP->verbose     = ArgsState  (DEFAULT_VERBOSE, p, c, "-v", "--verbose");
-  //   MAP->force       = ArgsState  (DEFAULT_FORCE,   p, c, "-F", "--force");
 
-  Parameters *P = (Parameters *) Malloc(1 * sizeof(Parameters));
-  if((P->help = ArgsState(DEFAULT_HELP,    p, c, "-h", "--help")) == 1 || c < 2){
+  P = (Parameters *) Malloc(1 * sizeof(Parameters));
+  if((P->help = ArgsState(DEFAULT_HELP, p, argc, "-h", "--help")) == 1 || argc < 2){
     PrintMenuFalcon();
     Free(P);
-    return;
-    }
+    return EXIT_SUCCESS;
+  }
 
-  if(ArgsState(DEF_VERSION, p, c, "-V", "--version")){
+  if(ArgsState(DEF_VERSION, p, argc, "-V", "--version")){
     PrintVersion();
     Free(P);
-    return;
-    }
+    return EXIT_SUCCESS;
+  }
 
-  if(ArgsState(0, p, c, "-s", "--show")){
+  if(ArgsState(0, p, argc, "-s", "--show")){
     PrintLevels();
     Free(P);
-    return;
-    }
+    return EXIT_SUCCESS;
+  }
 
-  P->verbose  = ArgsState  (DEFAULT_VERBOSE, p, c, "-v", "--verbose");
-  P->force    = ArgsState  (DEFAULT_FORCE,   p, c, "-F", "--force");
+  P->verbose  = ArgsState  (DEFAULT_VERBOSE, p, argc, "-v", "--verbose");
+  P->force    = ArgsState  (DEFAULT_FORCE,   p, argc, "-F", "--force");
   #ifdef LOCAL_SIMILARITY
-  P->local    = ArgsState  (DEFAULT_LOCAL,   p, c, "-Z", "--local");
+  P->local    = ArgsState  (DEFAULT_LOCAL,   p, argc, "-Z", "--local");
   #endif
-  P->sample   = ArgsNum    (DEFAULT_SAMPLE,  p, c, "-p", MIN_SAP, MAX_SAP);
-  P->level    = ArgsNum    (0,               p, c, "-l", MIN_LEV, MAX_LEV);
-  topSize     = ArgsNum    (DEF_TOP,         p, c, "-t", MIN_TOP, MAX_TOP);
-  P->nThreads = ArgsNum    (DEFAULT_THREADS, p, c, "-n", MIN_THREADS,
+  P->sample   = ArgsNum    (DEFAULT_SAMPLE,  p, argc, "-p", MIN_SAP, MAX_SAP);
+  P->level    = ArgsNum    (0,               p, argc, "-l", MIN_LEV, MAX_LEV);
+  topSize     = ArgsNum    (DEF_TOP,         p, argc, "-t", MIN_TOP, MAX_TOP);
+  P->nThreads = ArgsNum    (DEFAULT_THREADS, p, argc, "-n", MIN_THREADS,
   MAX_THREADS);
 
   P->nModels = 0;
-  for(n = 1 ; n < c ; ++n)
-    if(strcmp(p[n], "-m") == 0)
+  for(n = 1 ; n < argc ; ++n)
+    if(strcmp(argv[n], "-m") == 0)
       P->nModels += 1;
 
   if(P->nModels == 0 && P->level == 0)
@@ -1138,13 +891,13 @@ void P_Falcon(char **p, int c)
     if(strcmp(xargv[n], "-c") == 0)
       col = atoi(xargv[n+1]);
 
-  P->col       = ArgsNum    (col,   p, c, "-c", 1, 253);
-  P->gamma     = ArgsDouble (gamma, p, c, "-g");
+  P->col       = ArgsNum    (col,   p, argc, "-c", 1, 253);
+  P->gamma     = ArgsDouble (gamma, p, argc, "-g");
   P->gamma     = ((int) (P->gamma * 65536)) / 65536.0;
-  P->output    = ArgsFileGen(p, c, "-x", "top", ".csv");
+  P->output    = ArgsFileGen(p, argc, "-x", "top", ".csv");
   #ifdef LOCAL_SIMILARITY
   if(P->local == 1){
-    P->outLoc  = ArgsFileGen(p, c, "-y", "local", ".fal");
+    P->outLoc  = ArgsFileGen(p, argc, "-y", "local", ".fal");
     }
   #endif
 
@@ -1164,12 +917,7 @@ void P_Falcon(char **p, int c)
 
   if(P->nModels == 0){
     fprintf(stderr, "Error: at least you need to use a context model!\n");
-    Free(P);
-    if(OUTPUT) fclose(OUTPUT);
-    #ifdef LOCAL_SIMILARITY
-    if(P->local == 1 && OUTLOC) fclose(OUTLOC);
-    #endif
-    return;
+    return EXIT_FAILURE;
     }
 
   // READ MODEL PARAMETERS FROM XARGS & ARGS
@@ -1179,9 +927,9 @@ void P_Falcon(char **p, int c)
     T[ref].id    = ref;
     T[ref].top   = CreateTop(topSize);
     k = 0;
-    for(n = 1 ; n < c ; ++n)
-      if(strcmp(p[n], "-m") == 0)
-        T[ref].model[k++] = ArgsUniqModel(p[n+1], 0);
+    for(n = 1 ; n < argc ; ++n)
+      if(strcmp(argv[n], "-m") == 0)
+        T[ref].model[k++] = ArgsUniqModel(argv[n+1], 0);
     if(P->level != 0){
       for(n = 1 ; n < xargc ; ++n)
         if(strcmp(xargv[n], "-m") == 0)
@@ -1189,14 +937,14 @@ void P_Falcon(char **p, int c)
       }
     }
 
-  P->base    = p[c-1];
-  P->nFiles  = ReadFNames (P, p[c-2], 0);
+  P->base    = argv[argc-1];
+  P->nFiles  = ReadFNames (P, argv[argc-2], 0);
   fprintf(stderr, "\n");
-  if(P->verbose) PrintArgs(P, T[0], p[c-2], p[c-1], topSize);
+  if(P->verbose) PrintArgs(P, T[0], argv[argc-2], argv[argc-1], topSize);
 
   fprintf(stderr, "==[ PROCESSING ]====================\n");
   TIME *Time = CreateClock(clock());
-  CompressAction(T, p[c-2], P->base);
+  CompressAction(T, argv[argc-2], P->base);
 
   k = 0;
   P->top = CreateTop(topSize * P->nThreads);
@@ -1288,24 +1036,11 @@ void P_Falcon(char **p, int c)
     }
   Free(T);
 
-  // Free level-related resources
-  if(P->level != 0) {
-    Free(xpl);
-    for(n = 0; n < xargc; ++n)
-      Free(xargv[n]);
-    Free(xargv);
+  return EXIT_SUCCESS;
   }
 
-  // Free the parameter structure
-  if(P->output) Free(P->output);
-  #ifdef LOCAL_SIMILARITY
-  if(P->local == 1 && P->outLoc) Free(P->outLoc);
-  #endif
-  for(n = 0; n < P->nFiles; ++n)
-    Free(P->files[n]);
-  Free(P->files);
-  Free(P);
-}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 
 int32_t main(int argc, char *argv[])
 {
@@ -1326,7 +1061,7 @@ int32_t main(int argc, char *argv[])
   switch(KeyString(argv[1]))
   {
     case K1: PrintMainMenu();                               break;
-    case K2: P_Falcon                        (argv, argc);  break;
+    case K2: P_Falcon                        (argv+1, argc-1);  break;
     //case K3: P_Extract                       (argv, argc);  break;
     //case K4: P_LocalRedundancy               (argv, argc);  break;
     //case K5: P_Simulation                    (argv, argc);  break;
