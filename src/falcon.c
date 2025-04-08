@@ -1028,6 +1028,23 @@ int32_t P_Falcon(char **argv, int argc){
   StopCalcAll(Time, clock());
   fprintf(stderr, "\n");
 
+  if (xargv) {
+    if (xargv[0]) {
+      Free(xargv[0]);  // Free the duplicated string
+    }
+    Free(xargv);         // Free the array itself
+  }
+
+  // Free P resources
+  if (P->output) {
+    Free(P->output);
+  }
+
+  // Free file names
+  if (P->files) {
+    Free(P->files);
+  }
+
   RemoveClock(Time);
   DeleteTop(P->top);
   for(ref = 0 ; ref < P->nThreads ; ++ref){
@@ -1035,6 +1052,7 @@ int32_t P_Falcon(char **argv, int argc){
     Free(T[ref].model);
     }
   Free(T);
+  Free(P);
 
   return EXIT_SUCCESS;
   }
