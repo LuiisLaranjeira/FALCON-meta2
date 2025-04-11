@@ -265,6 +265,48 @@ CMakeFiles/FALCON.dir/keys.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/FALCON.dir/keys.c.s"
 	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/ll/FALCON-meta2/src/keys.c -o CMakeFiles/FALCON.dir/keys.c.s
 
+CMakeFiles/FALCON.dir/filters.c.o: CMakeFiles/FALCON.dir/flags.make
+CMakeFiles/FALCON.dir/filters.c.o: /home/ll/FALCON-meta2/src/filters.c
+CMakeFiles/FALCON.dir/filters.c.o: CMakeFiles/FALCON.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ll/FALCON-meta2/src/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building C object CMakeFiles/FALCON.dir/filters.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/FALCON.dir/filters.c.o -MF CMakeFiles/FALCON.dir/filters.c.o.d -o CMakeFiles/FALCON.dir/filters.c.o -c /home/ll/FALCON-meta2/src/filters.c
+
+CMakeFiles/FALCON.dir/filters.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/FALCON.dir/filters.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/ll/FALCON-meta2/src/filters.c > CMakeFiles/FALCON.dir/filters.c.i
+
+CMakeFiles/FALCON.dir/filters.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/FALCON.dir/filters.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/ll/FALCON-meta2/src/filters.c -o CMakeFiles/FALCON.dir/filters.c.s
+
+CMakeFiles/FALCON.dir/labels.c.o: CMakeFiles/FALCON.dir/flags.make
+CMakeFiles/FALCON.dir/labels.c.o: /home/ll/FALCON-meta2/src/labels.c
+CMakeFiles/FALCON.dir/labels.c.o: CMakeFiles/FALCON.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ll/FALCON-meta2/src/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building C object CMakeFiles/FALCON.dir/labels.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/FALCON.dir/labels.c.o -MF CMakeFiles/FALCON.dir/labels.c.o.d -o CMakeFiles/FALCON.dir/labels.c.o -c /home/ll/FALCON-meta2/src/labels.c
+
+CMakeFiles/FALCON.dir/labels.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/FALCON.dir/labels.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/ll/FALCON-meta2/src/labels.c > CMakeFiles/FALCON.dir/labels.c.i
+
+CMakeFiles/FALCON.dir/labels.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/FALCON.dir/labels.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/ll/FALCON-meta2/src/labels.c -o CMakeFiles/FALCON.dir/labels.c.s
+
+CMakeFiles/FALCON.dir/paint.c.o: CMakeFiles/FALCON.dir/flags.make
+CMakeFiles/FALCON.dir/paint.c.o: /home/ll/FALCON-meta2/src/paint.c
+CMakeFiles/FALCON.dir/paint.c.o: CMakeFiles/FALCON.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ll/FALCON-meta2/src/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building C object CMakeFiles/FALCON.dir/paint.c.o"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/FALCON.dir/paint.c.o -MF CMakeFiles/FALCON.dir/paint.c.o.d -o CMakeFiles/FALCON.dir/paint.c.o -c /home/ll/FALCON-meta2/src/paint.c
+
+CMakeFiles/FALCON.dir/paint.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/FALCON.dir/paint.c.i"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/ll/FALCON-meta2/src/paint.c > CMakeFiles/FALCON.dir/paint.c.i
+
+CMakeFiles/FALCON.dir/paint.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/FALCON.dir/paint.c.s"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/ll/FALCON-meta2/src/paint.c -o CMakeFiles/FALCON.dir/paint.c.s
+
 # Object files for target FALCON
 FALCON_OBJECTS = \
 "CMakeFiles/FALCON.dir/falcon.c.o" \
@@ -280,7 +322,10 @@ FALCON_OBJECTS = \
 "CMakeFiles/FALCON.dir/pmodels.c.o" \
 "CMakeFiles/FALCON.dir/kmodels.c.o" \
 "CMakeFiles/FALCON.dir/top.c.o" \
-"CMakeFiles/FALCON.dir/keys.c.o"
+"CMakeFiles/FALCON.dir/keys.c.o" \
+"CMakeFiles/FALCON.dir/filters.c.o" \
+"CMakeFiles/FALCON.dir/labels.c.o" \
+"CMakeFiles/FALCON.dir/paint.c.o"
 
 # External object files for target FALCON
 FALCON_EXTERNAL_OBJECTS =
@@ -299,9 +344,12 @@ FALCON: CMakeFiles/FALCON.dir/pmodels.c.o
 FALCON: CMakeFiles/FALCON.dir/kmodels.c.o
 FALCON: CMakeFiles/FALCON.dir/top.c.o
 FALCON: CMakeFiles/FALCON.dir/keys.c.o
+FALCON: CMakeFiles/FALCON.dir/filters.c.o
+FALCON: CMakeFiles/FALCON.dir/labels.c.o
+FALCON: CMakeFiles/FALCON.dir/paint.c.o
 FALCON: CMakeFiles/FALCON.dir/build.make
 FALCON: CMakeFiles/FALCON.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/ll/FALCON-meta2/src/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Linking C executable FALCON"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/ll/FALCON-meta2/src/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Linking C executable FALCON"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/FALCON.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

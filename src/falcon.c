@@ -7,6 +7,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include <regex.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -24,9 +25,12 @@
 #include "buffer.h"
 #include "levels.h"
 #include "common.h"
+#include "filters.h"
 #include "models.h"
 #include "pmodels.h"
 #include "kmodels.h"
+#include "labels.h"
+#include "paint.h"
 #include "stream.h"
 
 //////////////////////////////////////////////////////////////////////////////
@@ -664,6 +668,112 @@ void CompressTarget(Threads T){
   fclose(Reader);
   }
 
+void CompressTargetInter(Threads T){
+  FILE        *Reader  = Fopen(P->files[T.id], "r");
+  double      *cModelWeight, cModelTotalWeight = 0, bits = 0, instance = 0;
+  uint64_t    nBase = 0;
+  uint32_t    n, k, idxPos, totModels, cModel;
+  PARSER      *PA = CreateParser();
+  CBUF        *symBuf = CreateCBuffer(BUFFER_SIZE, BGUARD);
+  uint8_t     *readBuf = (uint8_t *) Calloc(BUFFER_SIZE, sizeof(uint8_t));
+  uint8_t     sym, *pos;
+  PModel      **pModel, *MX;
+  CModel      **Shadow;
+  FloatPModel *PT;
+
+  totModels = P->nModels; // EXTRA MODELS DERIVED FROM EDITS
+  for(n = 0 ; n < P->nModels ; ++n)
+    if(T.model[n].edits != 0)
+      totModels += 1;
+
+  Shadow = (CModel **) Calloc(P->nModels, sizeof(CModel *));
+  for(n = 0 ; n < P->nModels ; ++n)
+    Shadow[n] = CreateShadowModel(Models[n]);
+  pModel        = (PModel  **) Calloc(totModels, sizeof(PModel *));
+  for(n = 0 ; n < totModels ; ++n)
+    pModel[n]   = CreatePModel(ALPHABET_SIZE);
+  MX            = CreatePModel(ALPHABET_SIZE);
+  PT            = CreateFloatPModel(ALPHABET_SIZE);
+  cModelWeight  = (double   *) Calloc(totModels, sizeof(double));
+
+  for(n = 0 ; n < totModels ; ++n)
+    cModelWeight[n] = 1.0 / totModels;
+
+  FileType(PA, Reader);
+
+  nBase = 0;
+  while((k = fread(readBuf, 1, BUFFER_SIZE, Reader)))
+    for(idxPos = 0 ; idxPos < k ; ++idxPos){
+      if(ParseSym(PA, (sym = readBuf[idxPos])) == -1) continue;
+      symBuf->buf[symBuf->idx] = sym = DNASymToNum(sym);
+
+      memset((void *)PT->freqs, 0, ALPHABET_SIZE * sizeof(double));
+
+      n = 0;
+      pos = &symBuf->buf[symBuf->idx-1];
+      for(cModel = 0 ; cModel < P->nModels ; ++cModel){
+        GetPModelIdx(pos, Shadow[cModel]);
+        ComputePModel(Models[cModel], pModel[n], Shadow[cModel]->pModelIdx,
+        Shadow[cModel]->alphaDen);
+        ComputeWeightedFreqs(cModelWeight[n], pModel[n], PT);
+        if(Shadow[cModel]->edits != 0){
+          ++n;
+          Shadow[cModel]->SUBS.seq->buf[Shadow[cModel]->SUBS.seq->idx] = sym;
+          Shadow[cModel]->SUBS.idx = GetPModelIdxCorr(Shadow[cModel]->SUBS.
+          seq->buf+Shadow[cModel]->SUBS.seq->idx-1, Shadow[cModel], Shadow
+          [cModel]->SUBS.idx);
+          ComputePModel(Models[cModel], pModel[n], Shadow[cModel]->SUBS.idx,
+          Shadow[cModel]->SUBS.eDen);
+          ComputeWeightedFreqs(cModelWeight[n], pModel[n], PT);
+          }
+        ++n;
+        }
+
+      MX->sum  = (MX->freqs[0] = 1 + (unsigned) (PT->freqs[0] * MX_PMODEL));
+      MX->sum += (MX->freqs[1] = 1 + (unsigned) (PT->freqs[1] * MX_PMODEL));
+      MX->sum += (MX->freqs[2] = 1 + (unsigned) (PT->freqs[2] * MX_PMODEL));
+      MX->sum += (MX->freqs[3] = 1 + (unsigned) (PT->freqs[3] * MX_PMODEL));
+      bits += (instance = PModelSymbolLog(MX, sym));
+      nBase++;
+
+      cModelTotalWeight = 0;
+      for(n = 0 ; n < totModels ; ++n){
+        cModelWeight[n] = Power(cModelWeight[n], P->gamma) * (double)
+        pModel[n]->freqs[sym] / pModel[n]->sum;
+        cModelTotalWeight += cModelWeight[n];
+        }
+
+      for(n = 0 ; n < totModels ; ++n)
+        cModelWeight[n] /= cModelTotalWeight; // RENORMALIZE THE WEIGHTS
+
+      n = 0;
+      for(cModel = 0 ; cModel < P->nModels ; ++cModel){
+        if(Shadow[cModel]->edits != 0){
+          CorrectCModelSUBS(Shadow[cModel], pModel[++n], sym);
+          }
+        ++n;
+        }
+
+      UpdateCBuffer(symBuf);
+      }
+
+  Free(cModelWeight);
+  for(n = 0 ; n < totModels ; ++n)
+    RemovePModel(pModel[n]);
+  Free(pModel);
+  RemovePModel(MX);
+  RemoveFPModel(PT);
+  for(n = 0 ; n < P->nModels ; ++n)
+    FreeShadow(Shadow[n]);
+  Free(Shadow);
+  Free(readBuf);
+  RemoveCBuffer(symBuf);
+  RemoveParser(PA);
+  fclose(Reader);
+
+  P->matrix[P->ref][T.id] = nBase == 0 ? 101 : bits / 2 / nBase; // 101 -> nan
+  }
+
 
 //////////////////////////////////////////////////////////////////////////////
 // - - - - - - - - - - - - F   T H R E A D I N G - - - - - - - - - - - - - - -
@@ -688,6 +798,12 @@ void *CompressThread(void *Thr){
 
   pthread_exit(NULL);
   }
+
+void *CompressThreadInter(void *Thr){
+  Threads *T = (Threads *) Thr;
+  CompressTargetInter(T[0]);
+  pthread_exit(NULL);
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -739,6 +855,42 @@ void LoadReference(char *refName){
   fclose(Reader);
   }
 
+void LoadReferenceInter(Threads T){
+  FILE     *Reader = Fopen(P->files[T.id], "r");
+  uint32_t n;
+  uint64_t idx = 0;
+  uint64_t k, idxPos;
+  PARSER   *PA = CreateParser();
+  CBUF     *symBuf = CreateCBuffer(BUFFER_SIZE, BGUARD);
+  uint8_t  sym, irSym, *readBuf = Calloc(BUFFER_SIZE, sizeof(uint8_t));
+  FileType(PA, Reader);
+  rewind(Reader);
+
+  while((k = fread(readBuf, 1, BUFFER_SIZE, Reader)))
+    for(idxPos = 0 ; idxPos < k ; ++idxPos){
+      if(ParseSym(PA, (sym = readBuf[idxPos])) == -1){ idx = 0; continue; }
+      symBuf->buf[symBuf->idx] = sym = DNASymToNum(sym);
+      for(n = 0 ; n < P->nModels ; ++n){
+        CModel *CM = Models[n];
+        GetPModelIdx(symBuf->buf+symBuf->idx-1, CM);
+        if(++idx > CM->ctx){
+          UpdateCModelCounter(CM, sym, CM->pModelIdx);
+          if(CM->ir == 1){                         // INVERTED REPEATS
+            irSym = GetPModelIdxIR(symBuf->buf+symBuf->idx, CM);
+            UpdateCModelCounter(CM, irSym, CM->pModelIdxIR);
+          }
+        }
+      }
+      UpdateCBuffer(symBuf);
+    }
+
+  for(n = 0 ; n < P->nModels ; ++n)
+    ResetCModelIdx(Models[n]);
+  RemoveCBuffer(symBuf);
+  Free(readBuf);
+  RemoveParser(PA);
+  fclose(Reader);
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // - - - - - - - - R E F E R E N C E   W I T H   K M O D E L S - - - - - - - -
@@ -823,10 +975,164 @@ void CompressAction(Threads *T, char *refName, char *baseName){
   fprintf(stderr, "Done!\n");
 }
 
+void CompressActionInter(Threads *T, uint32_t ref){
+  uint32_t n, k;
+  pthread_t t[P->nThreads];
+  P->ref = ref;
+
+  Models = (CModel **) Malloc(P->nModels * sizeof(CModel *));
+  for(n = 0 ; n < P->nModels ; ++n)
+    Models[n] = CreateCModel(T[ref].model[n].ctx, T[ref].model[n].den,
+    T[ref].model[n].ir, REFERENCE, P->col, T[ref].model[n].edits,
+    T[ref].model[n].eDen);
+
+  fprintf(stderr, "  [+] Loading reference %u ... ", ref+1);
+  LoadReferenceInter(T[ref]);
+  fprintf(stderr, "Done!\n");
+
+  fprintf(stderr, "      [+] Compressing %u targets ... ", P->nFiles);
+  ref = 0;
+  do{
+    for(n = 0 ; n < P->nThreads ; ++n)
+      pthread_create(&(t[n+1]), NULL, CompressThreadInter, (void *) &(T[ref+n]));
+    for(n = 0 ; n < P->nThreads ; ++n) // DO NOT JOIN FORS!
+      pthread_join(t[n+1], NULL);
+  }
+  while((ref += P->nThreads) < P->nFiles && ref + P->nThreads <= P->nFiles);
+
+  if(ref < P->nFiles){ // EXTRA - OUT OF THE MAIN LOOP
+    for(n = ref, k = 0 ; n < P->nFiles ; ++n)
+      pthread_create(&(t[++k]), NULL, CompressThreadInter, (void *) &(T[n]));
+    for(n = ref, k = 0 ; n < P->nFiles ; ++n) // DO NOT JOIN FORS!
+      pthread_join(t[++k], NULL);
+  }
+  fprintf(stderr, "Done!\n");
+
+  for(n = 0 ; n < P->nModels ; ++n)
+    FreeCModel(Models[n]);
+  Free(Models);
+}
 
 //////////////////////////////////////////////////////////////////////////////
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// - - - - - - - - - - - - - - - - - M A I N - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - R E A D   L A B E L S - - - - - - - - - - - - -
+
+void ReadLabels(void){
+  if(access(P->labels, F_OK ) == -1)
+    return;
+  FILE *F = Fopen(P->labels, "r");
+  uint32_t n;
+  for(n = 0 ; n < P->nFiles ; ++n){
+    if(!fscanf(F, "%s", P->files[n])){
+      fclose(F);
+      return;
+      }
+    }
+  fclose(F);
+  }
+
+
+//////////////////////////////////////////////////////////////////////////////
+// - - - - - - - - - - - - - - M A T R I X   S I Z E - - - - - - - - - - - - -
+
+void ReadMatrixSize(char *fn){
+  FILE *F = Fopen(fn, "r");
+  char c;
+  P->nFiles = 0;
+  while((c = fgetc(F)) != '\n'){
+    if(c == EOF){
+      fclose(F);
+      break;
+      }
+    if(c == '\t')
+      ++P->nFiles;
+    }
+  if(P->nFiles == 0){
+    fprintf(stderr, "[x] Error: invalid file!\n");
+    exit(1);
+    }
+  fprintf(stderr, "  [>] Matrix size: %u\n", P->nFiles);
+  fclose(F);
+  }
+
+
+//////////////////////////////////////////////////////////////////////////////
+// - - - - - - - - - - - - - - M A T R I X   S I Z E - - - - - - - - - - - - -
+
+void ReadMatrix(char *fn){
+  FILE *F = Fopen(fn, "r");
+  uint32_t n, k;
+  for(n = 0 ; n < P->nFiles ; ++n){
+    for(k = 0 ; k < P->nFiles ; ++k){
+      if(!fscanf(F, "%lf", &P->matrix[n][k])){
+        fclose(F);
+        return;
+        }
+      }
+    }
+  fclose(F);
+  }
+
+
+//////////////////////////////////////////////////////////////////////////////
+// - - - - - - - - - - - - - - - - - P A I N T - - - - - - - - - - - - - - - -
+
+void PaintMatrix(double start, double rotations, double hue, double gamma,
+double width, double space){
+  FILE *Plot = Fopen(P->image, "w");
+  Painter *Paint;
+  COLORS  *CLR = (COLORS *) Calloc(1, sizeof(COLORS));
+  uint32_t ref, tar;
+
+  CLR->start     = start;
+  CLR->rotations = rotations;
+  CLR->hue       = hue;
+  CLR->gamma     = gamma;
+
+  Paint = CreateBasicPainter(DEFAULT_CX*2+((width+space)*P->nFiles)+5, width, space);
+
+  PrintHead(Plot, (2 * DEFAULT_CX) + (((Paint->width + Paint->space) *
+  P->nFiles) - Paint->space), Paint->size + EXTRA);
+
+  Rect(Plot, (2 * DEFAULT_CX) + (((Paint->width + Paint->space) * P->nFiles) -
+  Paint->space), Paint->size + EXTRA, 0, 0, "#ffffff");
+
+  // PRINT HEATMAP SCALE
+  uint32_t size = (Paint->width + Paint->space) * P->nFiles - Paint->space;
+  for(ref = 0 ; ref < size ; ++ref){
+    char color[12];
+    Rect(Plot, Paint->width, 1, DEFAULT_CX - (Paint->width*2), Paint->cy + ref,
+    HeatMapColor(((double) ref / size), color, CLR));
+    }
+  if(P->nFiles > 4)
+    Text90d(Plot, -DEFAULT_CX - ((size/2)+46), DEFAULT_CX-(Paint->width*2 + 2),
+    "SIMILARITY");
+  Text   (Plot, DEFAULT_CX-(Paint->width*2 + 14), Paint->cy+13, "+");
+  Text   (Plot, DEFAULT_CX-(Paint->width*2 + 14), Paint->cy+size, "-");
+
+  for(ref = 0 ; ref < P->nFiles ; ++ref){
+    //for(tar = P->nFiles ; tar-- ; ){ // INVERT LOOP TO INVERT HORIZONTAL ORDER
+    for(tar = 0 ; tar < P->nFiles ; ++tar){
+      char color[12];
+      Rect(Plot, Paint->width, Paint->width, Paint->cx, Paint->cy,
+      HeatMapColor(BoundDouble(0.0, P->matrix[ref][tar], 1.0), color, CLR));
+      Paint->cx += Paint->width + Paint->space;
+      }
+    // TEXT HAS 16 PX -> CALCULATE AVERAGE POSITION
+    Text   (Plot, Paint->cx + 4, (Paint->cy+Paint->width/2)+6, P->files[ref]);
+
+    // USE THE FOLLOWING TO INVERT THE NAMES ORDER -> THEN CHANGE IN THE SQUARES
+    //Text90d(Plot, 4-DEFAULT_CX, (Paint->cy+Paint->width/2)+10, P->files[P->nFiles-1-ref]);
+    Text90d(Plot, 4-DEFAULT_CX, (Paint->cy+Paint->width/2)+10, P->files[ref]);
+
+    Paint->cx =  DEFAULT_CX;
+    Paint->cy += Paint->width + Paint->space;
+    }
+
+  PrintFinal(Plot);
+  RemovePainter(Paint);
+  }
+
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 int32_t P_Falcon(char **argv, int argc){
   char     **p = *&argv, **xargv, *xpl = NULL;
@@ -1057,8 +1363,679 @@ int32_t P_Falcon(char **argv, int argc){
   return EXIT_SUCCESS;
   }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int32_t P_Filter(char **argv, int argc){
+  char **p = *&argv;
+  FILE *OUTPUT = NULL, *INPUT = NULL;
 
+  PEYE = (EYEPARAM *) Malloc(1 * sizeof(EYEPARAM));
+  if((PEYE->help = ArgsState(DEFAULT_HELP, p, argc, "-h", "--help")) == 1 || argc < 2){
+    PrintMenuFilter();
+    Free(P);
+    return EXIT_SUCCESS;
+  }
+  if(ArgsState(DEF_VERSION, p, argc, "-V", "--version")){
+    PrintVersion();
+    Free(P);
+    return EXIT_SUCCESS;
+  }
+
+  PEYE->verbose    = ArgsState  (DEFAULT_VERBOSE, p, argc, "-v", "--verbose");
+  PEYE->force      = ArgsState  (DEFAULT_FORCE,   p, argc, "-F", "--force");
+  PEYE->windowSize = ArgsNum    (100,             p, argc, "-s", 1, 999999);
+  PEYE->windowType = ArgsNum    (1,               p, argc, "-w", 0, 3);
+  PEYE->sampling   = ArgsNum    (10,              p, argc, "-x", 1, 999999);
+  PEYE->threshold  = ArgsDouble (1.0,             p, argc, "-t");
+  PEYE->lowerSimi  = ArgsDouble (0.00,            p, argc, "-sl");
+  PEYE->upperSimi  = ArgsDouble (100.00,          p, argc, "-su");
+  PEYE->lowerSize  = ArgsNum64  (1,               p, argc, "-dl", 1,
+  9999999999);
+  PEYE->upperSize  = ArgsNum64  (9999999999,      p, argc, "-du", 1,
+  9999999999);
+  PEYE->output     = ArgsFileGen(p, argc, "-o", "coords", ".fil");
+
+  if(!PEYE->force)
+    FAccessWPerm(PEYE->output);
+  OUTPUT = Fopen(PEYE->output, "w");
+
+  fprintf(stderr, "\n");
+  if(PEYE->verbose){
+    PrintArgsFilter(PEYE);
+    }
+
+  fprintf(stderr, "==[ PROCESSING ]====================\n");
+  TIME *Time = CreateClock(clock());
+
+  int sym;
+  char fname[MAX_NAME];
+  double fvalue;
+  uint64_t fsize;
+
+  FILTER *FIL = CreateFilter(PEYE->windowSize, PEYE->sampling, PEYE->windowType,
+  PEYE->threshold);
+  INPUT = Fopen(argv[argc-1], "r");
+  while((sym = fgetc(INPUT)) != EOF){
+    if(sym == '#'){
+      if(fscanf(INPUT, "\t%lf\t%"PRIu64"\t%s\n", &fvalue, &fsize, fname) != 3){
+        fprintf(stderr, "  [x] Error: unknown type of file!\n");
+        exit(1);
+        }
+
+      if(fsize > PEYE->upperSize ||  fsize < PEYE->lowerSize ||
+        fvalue > PEYE->upperSimi || fvalue < PEYE->lowerSimi)
+        continue;
+
+      fprintf(stderr, "  [+] Filtering & segmenting %s ... ", fname);
+      fprintf(OUTPUT, "$\t%lf\t%"PRIu64"\t%s\n", fvalue, fsize, fname);
+      InitEntries(FIL, fsize, INPUT);
+      FilterStream(FIL, OUTPUT);
+      DeleteEntries(FIL);
+      fprintf(stderr, "Done!\n");
+      }
+    }
+  DeleteFilter(FIL);
+
+  fclose(OUTPUT);
+  fclose(INPUT);
+
+  StopTimeNDRM(Time, clock());
+  fprintf(stderr, "\n");
+
+  fprintf(stderr, "==[ STATISTICS ]====================\n");
+  StopCalcAll(Time, clock());
+  fprintf(stderr, "\n");
+
+  RemoveClock(Time);
+
+  return EXIT_SUCCESS;
+  }
+
+int32_t P_Filter_Visual(char **argv, int argc){
+  char **p = *&argv, fname[MAX_NAME];
+  FILE *OUTPUT = NULL, *INPUT = NULL;
+  int sym;
+  double fvalue;
+  uint32_t n, tmp, maxName, extraLength, cmp;
+  uint64_t maxSize = 0, fsize, iPos, ePos, nSeq, filtered;
+  Painter *Paint;
+  COLORS *CLR;
+
+  PEYE = (EYEPARAM *) Malloc(1 * sizeof(EYEPARAM));
+  if((PEYE->help = ArgsState(DEFAULT_HELP, p, argc, "-h", "--help")) == 1 || argc < 2){
+    PrintMenuVisual();
+    Free(P);
+    return EXIT_SUCCESS;
+  }
+
+  if(ArgsState(DEF_VERSION, p, argc, "-V", "--version")){
+    PrintVersion();
+    Free(P);
+    return EXIT_SUCCESS;
+  }
+
+  PEYE->verbose    = ArgsState  (DEFAULT_VERBOSE, p, argc, "-v", "--verbose");
+  PEYE->force      = ArgsState  (DEFAULT_FORCE,   p, argc, "-F", "--force");
+  PEYE->width      = ArgsDouble (DEFAULT_WIDTH,   p, argc, "-w");
+  PEYE->space      = ArgsDouble (DEFAULT_SPACE,   p, argc, "-s");
+  PEYE->showScale  = ArgsState  (DEFAULT_SHOWS,   p, argc, "-ss", "-showScale");
+  PEYE->showNames  = ArgsState  (DEFAULT_NAMES,   p, argc, "-sn", "-showNames");
+  PEYE->sameScale  = ArgsState  (DEFAULT_RSCAL,   p, argc, "-rs", "-sameScale");
+  PEYE->best       = ArgsState  (DEFAULT_GBEST,   p, argc, "-bg", "-best");
+  PEYE->start      = ArgsDouble (0.35,            p, argc, "-i");
+  PEYE->rotations  = ArgsDouble (1.50,            p, argc, "-r");
+  PEYE->hue        = ArgsDouble (1.92,            p, argc, "-u");
+  PEYE->gamma      = ArgsDouble (0.50,            p, argc, "-g");
+  PEYE->proportion = ArgsDouble (500,             p, argc, "-p");
+  PEYE->lowerSimi  = ArgsDouble (0.00,            p, argc, "-sl");
+  PEYE->upperSimi  = ArgsDouble (100.00,          p, argc, "-su");
+  PEYE->lowerSize  = ArgsNum64  (1,               p, argc, "-dl", 1,
+  9999999999);
+  PEYE->upperSize  = ArgsNum64  (9999999999,      p, argc, "-du", 1,
+  9999999999);
+  PEYE->enlarge    = ArgsNum64  (0,               p, argc, "-e",  0,
+  9999999999);
+  PEYE->output     = ArgsFileGen(p, argc, "-o", "femap", ".svg");
+
+  if(!PEYE->force)
+    FAccessWPerm(PEYE->output);
+  OUTPUT = Fopen(PEYE->output, "w");
+
+  fprintf(stderr, "\n");
+  if(PEYE->verbose){
+    PrintArgsEye(PEYE);
+    }
+
+  fprintf(stderr, "==[ PROCESSING ]====================\n");
+  TIME *Time = CreateClock(clock());
+
+  // TODO: OPTION TO IGNORE SCALE AND SET THEM AT SAME SIZE
+
+  CLR = (COLORS *) Calloc(1, sizeof(COLORS));
+  CLR->start     = PEYE->start;
+  CLR->rotations = PEYE->rotations;
+  CLR->hue       = PEYE->hue;
+  CLR->gamma     = PEYE->gamma;
+
+  // BUILD UNIQUE ARRAY FOR NAMES USING REGULAR EXPRESSION:
+  //
+  SLABELS *SL = CreateSLabels();
+  uint64_t unique = 0;
+  // tested at: https://regex101.com/
+  char *regexString = ".*\\|.*\\|.*\\|_([a-z A-Z]*_[a-z A-Z]*)";
+  regex_t regexCompiled;
+  regmatch_t groupArray[2];
+  if(PEYE->best == 1){
+    if(regcomp(&regexCompiled, regexString, REG_EXTENDED)){
+      fprintf(stderr, "  [x] Error: regular expression compilation!\n");
+      return 1;
+      }
+    }
+
+  INPUT = Fopen(argv[argc-1], "r");
+  nSeq = 0;
+  maxName = 0;
+  filtered = 0;
+  while((sym = fgetc(INPUT)) != EOF){
+
+    if(sym == '$' || sym == '#'){
+      if(fscanf(INPUT, "\t%lf\t%"PRIu64"\t%s\n", &fvalue, &fsize, fname) != 3){
+        fprintf(stderr, "  [x] Error: unknown type of file!\n");
+        exit(1);
+        }
+
+      if(PEYE->best == 1){
+        if(regexec(&regexCompiled, fname, 2, groupArray, 0) == 0){
+          char sourceCopy[strlen(fname) + 1];
+          strcpy(sourceCopy, fname);
+          sourceCopy[groupArray[1].rm_eo] = 0;
+          if(SearchSLabels(SL, sourceCopy + groupArray[1].rm_so) == 0){
+            ++unique;
+            AddSLabel(SL, sourceCopy + groupArray[1].rm_so);
+            UpdateSLabels(SL);
+            }
+          else{
+            ++filtered;
+            continue;
+            }
+          }
+        }
+
+      if(fsize > PEYE->upperSize ||  fsize < PEYE->lowerSize ||
+        fvalue > PEYE->upperSimi || fvalue < PEYE->lowerSimi){
+        ++filtered;
+        continue;
+        }
+
+      if(fsize > maxSize)
+        maxSize = fsize;
+
+      if(PEYE->best == 1){
+        if((tmp = strlen(SL->names[SL->idx-1])) > maxName)
+          maxName = tmp;
+        }
+      else{
+        if((tmp = strlen(fname)) > maxName)
+          maxName = tmp;
+        }
+      ++nSeq;
+      }
+    }
+  rewind(INPUT);
+
+  fprintf(stderr, "Skipping %"PRIu64" from %"PRIu64" entries.\n",
+  filtered, filtered+nSeq);
+
+
+  if(PEYE->best == 1){
+    fprintf(stderr, "Number of unique existing species: %"PRIu64".\n", unique);
+    fprintf(stderr, "Unique species:\n");
+    for(n = 0 ; n < SL->idx ; ++n)
+      fprintf(stderr, "  [+] %s\n", SL->names[n]);
+    DeleteSLabels(SL);
+    SL = CreateSLabels();
+    }
+  Paint = CreatePainter(maxSize, PEYE->width, PEYE->space, PEYE->proportion,
+  "#ffffff");
+
+  extraLength = 0;
+  if(PEYE->showNames == 1){
+    extraLength = 10 * maxName; // LETTER SIZE * MAXNAME
+    Paint->cy += extraLength;
+    }
+
+  if(PEYE->showScale == 1)
+    nSeq += 2;
+
+  PrintHead(OUTPUT, (2 * DEFAULT_CX) + (((Paint->width + PEYE->space) * nSeq) -
+  PEYE->space), Paint->size + EXTRA + Paint->width + extraLength);
+  Rect(OUTPUT, (2 * DEFAULT_CX) + (((Paint->width + PEYE->space) * nSeq) -
+  PEYE->space), Paint->size + EXTRA + Paint->width + extraLength, 0, 0,
+  "#ffffff");
+
+  if(PEYE->showScale == 1){
+    nSeq -= 2;
+    Paint->cx += (2 * Paint->width + PEYE->space);
+    // PRINT HEATMAP SCALE
+    uint32_t size = 4 * Paint->width;
+    for(n = 0 ; n < size ; ++n){
+      char color[12];
+      Rect(OUTPUT, Paint->width, 1, Paint->cx - (Paint->width*2),
+      Paint->cy + n, HeatMapColor(((double) n / size), color, CLR));
+      }
+    Text(OUTPUT, Paint->cx-(Paint->width*2 + 14), Paint->cy+18,     "+");
+    Text(OUTPUT, Paint->cx-(Paint->width*2 + 12), Paint->cy+size-6, "-");
+
+    // HIGH COMPLEX SCALE
+    Rect(OUTPUT, Paint->width, Paint->width, Paint->cx - (Paint->width*2),
+    Paint->cy + Paint->width + size, GetRgbColor(HIGH_COMPLEX));
+    Text(OUTPUT, Paint->cx-(Paint->width*2 + 14), (Paint->cy+Paint->width+size)
+    +(Paint->width/2)+5, "+");
+    // MEDIUMH COMPLEX SCALE
+    Rect(OUTPUT, Paint->width, Paint->width, Paint->cx - (Paint->width*2),
+    Paint->cy + 2*Paint->width + size, GetRgbColor(MEDIUMH_COMPLEX));
+    // MEDIUML COMPLEX SCALE
+    Rect(OUTPUT, Paint->width, Paint->width, Paint->cx - (Paint->width*2),
+    Paint->cy + 3*Paint->width + size, GetRgbColor(MEDIUML_COMPLEX));
+    // LOW COMPLEX SCALE
+    Rect(OUTPUT, Paint->width, Paint->width, Paint->cx - (Paint->width*2),
+    Paint->cy + 4*Paint->width + size, GetRgbColor(LOW_COMPLEX));
+    Text(OUTPUT, Paint->cx-(Paint->width*2+12), (Paint->cy+4*Paint->width+size)
+    +(Paint->width/2)+4, "-");
+    }
+
+  if(nSeq > 0) fprintf(stderr, "Addressing regions individually:\n");
+  while((sym = fgetc(INPUT)) != EOF){
+
+    if(sym == '$' || sym == '#'){
+      if(fscanf(INPUT, "\t%lf\t%"PRIu64"\t%s\n", &fvalue, &fsize, fname) != 3){
+        fprintf(stderr, "  [x] Error: unknown type of file!\n");
+        exit(1);
+        }
+
+      if(sym == '#'){
+        if(PEYE->best == 1){
+          if(regexec(&regexCompiled, fname, 2, groupArray, 0) == 0){
+            char sourceCopy[strlen(fname) + 1];
+            strcpy(sourceCopy, fname);
+            sourceCopy[groupArray[1].rm_eo] = 0;
+            if(SearchSLabels(SL, sourceCopy + groupArray[1].rm_so) == 0){
+              AddSLabel(SL, sourceCopy + groupArray[1].rm_so);
+              UpdateSLabels(SL);
+              }
+            else{ // SKIP
+              continue;
+              }
+            }
+          }
+
+        // SKIPS: FILTERED ATTRIBUTES
+        if(fsize > PEYE->upperSize ||  fsize < PEYE->lowerSize ||
+          fvalue > PEYE->upperSimi || fvalue < PEYE->lowerSimi){
+          continue;
+          }
+
+        if(PEYE->showNames == 1){  // PRINT NAMES 90D
+          if(PEYE->best == 1){
+            Text90d(OUTPUT, -(Paint->cy-32), Paint->cx+Paint->width-
+            (Paint->width/2.0)+10, SL->names[SL->idx-1]);
+            }
+          else{
+            Text90d(OUTPUT, -(Paint->cy-32), Paint->cx+Paint->width-
+            (Paint->width/2.0)+10, fname);
+            }
+          }
+
+        if(PEYE->best == 1)
+          fprintf(stderr, "  [+] Painting %s (%s) ... ", SL->names[SL->idx-1],
+          fname);
+        else
+          fprintf(stderr, "  [+] Painting %s ... ", fname);
+
+        char tmpTxt[MAX_NAME], color[12];
+        if(fvalue < 10){
+          sprintf(tmpTxt, "%.1lf", fvalue);
+          Text(OUTPUT, (Paint->cx+Paint->width/2)-12, Paint->cy-10, tmpTxt);
+          }
+        else{
+          sprintf(tmpTxt, "%u", (unsigned) fvalue);
+          Text(OUTPUT, (Paint->cx+Paint->width/2)-9, Paint->cy-10, tmpTxt);
+          }
+        RectWithBorder(OUTPUT, Paint->width, Paint->width, Paint->cx, Paint->cy,
+        HeatMapColor(BoundDouble(0.0, 1-fvalue/100.0, 1.0), color, CLR));
+
+        if(nSeq > 0)
+          Paint->cx += Paint->width + Paint->space;
+        fprintf(stderr, "Done!\n");
+        continue; // CONTINUE WITHOUT WRITTING LOCAL COMPLEXITY
+        }
+
+      if(PEYE->best == 1){
+        if(regexec(&regexCompiled, fname, 2, groupArray, 0) == 0){
+          char sourceCopy[strlen(fname) + 1];
+          strcpy(sourceCopy, fname);
+          sourceCopy[groupArray[1].rm_eo] = 0;
+          if(SearchSLabels(SL, sourceCopy + groupArray[1].rm_so) == 0){
+            AddSLabel(SL, sourceCopy + groupArray[1].rm_so);
+            UpdateSLabels(SL);
+            }
+          else{ // SKIP
+            while(fscanf(INPUT, "%"PRIu64":%"PRIu64"\t%u\n", &iPos, &ePos, &cmp)
+            == 3)
+              ; // DO NOTHING
+            continue;
+            }
+          }
+        }
+
+      // SKIPS: FILTERED ATTRIBUTES
+      if(fsize > PEYE->upperSize ||  fsize < PEYE->lowerSize ||
+        fvalue > PEYE->upperSimi || fvalue < PEYE->lowerSimi){
+        while(fscanf(INPUT, "%"PRIu64":%"PRIu64"\t%u\n", &iPos, &ePos, &cmp)
+        == 3)
+          ; // DO NOTHING
+        continue;
+        }
+
+      if(PEYE->showNames == 1){  // PRINT NAMES 90D
+        if(PEYE->best == 1){
+          Text90d(OUTPUT, -(Paint->cy-32), Paint->cx+Paint->width-
+          (Paint->width/2.0)+10, SL->names[SL->idx-1]);
+          }
+        else{
+          Text90d(OUTPUT, -(Paint->cy-32), Paint->cx+Paint->width-
+          (Paint->width/2.0)+10, fname);
+          }
+        }
+
+      char tmpTxt[MAX_NAME], color[12];
+      if(fvalue < 10){
+        sprintf(tmpTxt, "%.1lf", fvalue);
+        Text(OUTPUT, (Paint->cx+Paint->width/2)-12, Paint->cy-10, tmpTxt);
+        }
+      else{
+        sprintf(tmpTxt, "%u", (unsigned) fvalue);
+        Text(OUTPUT, (Paint->cx+Paint->width/2)-9, Paint->cy-10, tmpTxt);
+        }
+      RectWithBorder(OUTPUT, Paint->width, Paint->width, Paint->cx, Paint->cy,
+      HeatMapColor(BoundDouble(0.0, 1-fvalue/100.0, 1.0), color, CLR));
+
+      Paint->cy += Paint->width + Paint->space;
+
+      if(PEYE->best == 1)
+        fprintf(stderr, "  [+] Painting %s (%s) ... ", SL->names[SL->idx-1],
+        fname);
+      else
+        fprintf(stderr, "  [+] Painting %s ... ", fname);
+      while(1){
+        off_t beg = Ftello(INPUT);
+        if(fscanf(INPUT, "%"PRIu64":%"PRIu64"\t%u\n", &iPos, &ePos, &cmp) != 3){
+          Fseeko(INPUT, (off_t) beg, SEEK_SET);
+          Chromosome(OUTPUT, Paint->width, GetPoint(Paint, fsize), Paint->cx,
+          Paint->cy);
+          if(nSeq > 0)
+            Paint->cx += Paint->width + Paint->space;
+          break;
+          }
+        else{
+          int color = 0;
+          switch(cmp){
+            case 0: color = LOW_COMPLEX;     break;
+            case 1: color = MEDIUML_COMPLEX; break;
+            case 2: color = MEDIUMH_COMPLEX; break;
+            case 3: color = HIGH_COMPLEX;    break;
+            default: color = 0;
+            }
+          if(PEYE->enlarge == 0){
+            Rect(OUTPUT, Paint->width, GetPoint(Paint, ePos-iPos+1), Paint->cx,
+            Paint->cy + GetPoint(Paint, iPos), GetRgbColor(color));
+            }
+          else{
+            Rect(OUTPUT, Paint->width, GetPoint(Paint, ePos-iPos+1+PEYE->enlarge),
+            Paint->cx, Paint->cy + GetPoint(Paint, iPos), GetRgbColor(color));
+            }
+          }
+        }
+
+      Paint->cy -= Paint->width + Paint->space;
+      fprintf(stderr, "Done!\n");
+      }
+    }
+
+  PrintFinal(OUTPUT);
+
+  fclose(OUTPUT);
+  fclose(INPUT);
+  Free(CLR);
+  if(PEYE->best == 1)
+    DeleteSLabels(SL);
+  StopTimeNDRM(Time, clock());
+  fprintf(stderr, "\n");
+
+  fprintf(stderr, "==[ STATISTICS ]====================\n");
+  StopCalcAll(Time, clock());
+  fprintf(stderr, "\n");
+
+  RemoveClock(Time);
+  return EXIT_SUCCESS;
+  }
+
+int32_t P_Inter(char **argv, int argc){
+  char        **p = *&argv, **xargv, *xpl = NULL;
+  int32_t     xargc = 0;
+  uint32_t    n, k, col, ref;
+  double      gamma;
+  Threads     *T;
+
+  P = (Parameters *) Malloc(1 * sizeof(Parameters));
+  if((P->help = ArgsState(DEFAULT_HELP, p, argc, "-h", "--help")) == 1 || argc < 2){
+    PrintMenuInter();
+    Free(P);
+    return EXIT_SUCCESS;
+  }
+
+  if(ArgsState(DEF_VERSION, p, argc, "-V", "--version")){
+    PrintVersion();
+    Free(P);
+    return EXIT_SUCCESS;
+  }
+
+  if(ArgsState(0, p, argc, "-s", "--show")){
+    PrintLevels();
+    Free(P);
+    return EXIT_SUCCESS;
+  }
+
+
+  P->verbose  = ArgsState  (DEFAULT_VERBOSE, p, argc, "-v", "--verbose");
+  P->force    = ArgsState  (DEFAULT_FORCE,   p, argc, "-F", "--force");
+  P->level    = ArgsNum    (0, p, argc, "-l", MIN_LEV, MAX_LEV);
+  P->nThreads = ArgsNum    (DEFAULT_THREADS, p, argc, "-n", MIN_THREADS,
+  MAX_THREADS);
+
+  P->nModels = 0;
+  for(n = 1 ; n < argc ; ++n)
+    if(strcmp(argv[n], "-m") == 0)
+      P->nModels += 1;
+
+  if(P->nModels == 0 && P->level == 0)
+    P->level = DEFAULT_LEVEL;
+
+  if(P->level != 0){
+    xpl = GetLevels(P->level);
+    xargc = StrToArgv(xpl, &xargv);
+    for(n = 1 ; n < xargc ; ++n)
+      if(strcmp(xargv[n], "-m") == 0)
+        P->nModels += 1;
+    }
+
+  gamma = DEFAULT_GAMMA;
+  for(n = 1 ; n < xargc ; ++n)
+    if(strcmp(xargv[n], "-g") == 0)
+      gamma = atof(xargv[n+1]);
+
+  col = MAX_COLLISIONS;
+  for(n = 1 ; n < xargc ; ++n)
+    if(strcmp(xargv[n], "-c") == 0)
+      col = atoi(xargv[n+1]);
+
+  P->col       = ArgsNum    (col,   p, argc, "-c", 1, 200);
+  P->gamma     = ArgsDouble (gamma, p, argc, "-g");
+  P->gamma     = ((int)(P->gamma * 65536)) / 65536.0;
+  P->nFiles    = ReadFNames (P, argv[argc-1], 1);
+  P->output    = ArgsFileGen(p, argc, "-x", "matrix", ".csv");
+  P->labels    = ArgsFileGen(p, argc, "-o", "labels", ".csv");
+  FILE *OUTPUT = Fopen(P->output, "w");
+  FILE *LABELS = Fopen(P->labels, "w");
+
+  if(P->nModels == 0){
+    fprintf(stderr, "Error: at least you need to use a context model!\n");
+    return EXIT_FAILURE;
+    }
+
+  // READ MODEL PARAMETERS FROM XARGS & ARGS
+  T = (Threads *) Calloc(P->nFiles, sizeof(Threads));
+  for(ref = 0 ; ref < P->nFiles ; ++ref){
+    T[ref].model = (ModelPar *) Calloc(P->nModels, sizeof(ModelPar));
+    T[ref].id = ref;
+    k = 0;
+    for(n = 1 ; n < argc ; ++n)
+      if(strcmp(argv[n], "-m") == 0)
+        T[ref].model[k++] = ArgsUniqModel(argv[n+1], 0);
+    if(P->level != 0){
+      for(n = 1 ; n < xargc ; ++n)
+        if(strcmp(xargv[n], "-m") == 0)
+          T[ref].model[k++] = ArgsUniqModel(xargv[n+1], 0);
+      }
+    }
+
+  fprintf(stderr, "\n");
+  if(P->verbose) PrintArgsInter(P, T[0]);
+
+  P->matrix = (double  **) Calloc(P->nFiles, sizeof(double *));
+  P->size   = (uint64_t *) Calloc(P->nFiles, sizeof(uint64_t));
+  for(n = 0 ; n < P->nFiles ; ++n){
+    P->size[n]   = FopenBytesInFile(P->files[n]);
+    P->matrix[n] = (double *) Calloc(P->nFiles, sizeof(double));
+    }
+
+  if(P->nThreads > P->nFiles){
+    fprintf(stderr, "Error: the number of threads must not be higher than the "
+    "number of files\n");
+    exit(1);
+    }
+
+  fprintf(stderr, "==[ PROCESSING ]====================\n");
+  TIME *Time = CreateClock(clock());
+  for(n = 0 ; n < P->nFiles ; ++n){
+    CompressActionInter(T, n);
+    for(k = 0 ; k < P->nFiles ; ++k){
+      fprintf(stderr, "%.4lf\t", P->matrix[n][k]);
+      }
+    fprintf(stderr, "\n");
+    }
+  StopTimeNDRM(Time, clock());
+  fprintf(stderr, "\n");
+
+  fprintf(stderr, "==[ RESULTS ]=======================\n");
+  fprintf(stderr, "Normalized Dissimilarity Rate matrix:\n");
+  for(n = 0 ; n < P->nFiles ; ++n){
+    for(k = 0 ; k < P->nFiles ; ++k){
+      fprintf(stderr, "%.4lf\t", P->matrix[n][k]);
+      fprintf(OUTPUT, "%.4lf\t", P->matrix[n][k]);
+      }
+    fprintf(stderr, "\n");
+    fprintf(OUTPUT, "\n");
+    fprintf(LABELS, "%s\t", P->files[n]);
+    }
+  fprintf(LABELS, "\n");
+  fprintf(stderr, "\n");
+
+  fprintf(stderr, "==[ STATISTICS ]====================\n");
+  StopCalcAll(Time, clock());
+  fprintf(stderr, "\n");
+
+  // STOP &
+  RemoveClock(Time);
+  for(ref = 0 ; ref < P->nFiles ; ++ref)
+    Free(T[ref].model);
+  Free(T);
+  if(!OUTPUT) fclose(OUTPUT);
+  if(!LABELS) fclose(LABELS);
+
+  return EXIT_SUCCESS;
+  }
+
+int32_t P_Inter_Visual(char **argv, int argc){
+  char        **p = *&argv;
+  uint32_t    n;
+  double      start, rotations, hue, gamma, width, space;
+
+  P = (Parameters *) Malloc(1 * sizeof(Parameters));
+  if((P->help = ArgsState(DEFAULT_HELP, p, argc, "-h", "--help")) == 1 || argc < 2){
+    PrintMenuInterVisual();
+    Free(P);
+    return EXIT_SUCCESS;
+  }
+
+  if(ArgsState(DEF_VERSION, p, argc, "-V", "--version")){
+    PrintVersion();
+    Free(P);
+    return EXIT_SUCCESS;
+  }
+
+  P->verbose  = ArgsState    (DEFAULT_VERBOSE, p, argc, "-v", "--verbose");
+  P->force    = ArgsState    (DEFAULT_FORCE,   p, argc, "-F", "--force");
+  P->image    = (uint8_t *)   ArgsFilesImg    (p, argc, "-x");
+  P->labels   = (uint8_t *)   ArgsFile        (p, argc, "-l");
+  width       = ArgsDouble   (DEFAULT_WIDTH,   p, argc, "-w");
+  space       = ArgsDouble   (DEFAULT_SPACE,   p, argc, "-a");
+  start       = ArgsDouble   (0.35,            p, argc, "-s");
+  rotations   = ArgsDouble   (1.50,            p, argc, "-r");
+  hue         = ArgsDouble   (1.92,            p, argc, "-u");
+  gamma       = ArgsDouble   (0.50,            p, argc, "-g");
+
+  fprintf(stderr, "\n");
+  if(P->verbose){
+    fprintf(stderr, "==[ CONFIGURATION ]=================\n");
+    fprintf(stderr, "Verbose mode ....................... yes\n");
+    fprintf(stderr, "Heatmap design characteristics:\n");
+    fprintf(stderr, "  [+] Width ........................ %.3g\n", width);
+    fprintf(stderr, "  [+] Space ........................ %.3g\n", space);
+    fprintf(stderr, "  [+] Start ........................ %.3g\n", start);
+    fprintf(stderr, "  [+] Rotations .................... %.3g\n", rotations);
+    fprintf(stderr, "  [+] Hue .......................... %.3g\n", hue);
+    fprintf(stderr, "  [+] Gamma ........................ %.3g\n", gamma);
+    fprintf(stderr, "Input labels filename .............. %s\n",   P->labels);
+    fprintf(stderr, "Output heatmap filename ............ %s\n",   P->image);
+    fprintf(stderr, "\n");
+    }
+
+  fprintf(stderr, "==[ PROCESSING ]====================\n");
+  ReadMatrixSize(argv[argc-1]);
+  P->matrix = (double  **) Calloc(P->nFiles, sizeof(double *));
+  P->files  = (char    **) Calloc(P->nFiles, sizeof(char   *));
+  for(n = 0 ; n < P->nFiles ; ++n){
+    P->matrix[n] = (double *) Calloc(P->nFiles, sizeof(double));
+    P->files [n] = (char   *) Calloc(MAX_LABEL, sizeof(char  ));
+    P->files[n][0]  = '?';
+    P->files[n][1]  = '\0';
+    }
+  fprintf(stderr, "  [+] Loading labels ... ");
+  ReadLabels();
+  fprintf(stderr, "Done!\n");
+  fprintf(stderr, "  [+] Loading matrix ... ");
+  ReadMatrix(argv[argc-1]);
+  fprintf(stderr, "Done!\n");
+  fprintf(stderr, "  [+] Painting heatmap ... ");
+  PaintMatrix(start, rotations, hue, gamma, width, space);
+  fprintf(stderr, "Done!\n\n");
+
+  return EXIT_SUCCESS;
+  }
+
+//////////////////////////////////////////////////////////////////////////////
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - M A I N - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 int32_t main(int argc, char *argv[])
 {
@@ -1078,12 +2055,12 @@ int32_t main(int argc, char *argv[])
 
   switch(KeyString(argv[1]))
   {
-    case K1: PrintMainMenu();                               break;
+    case K1: PrintMainMenu();                                   break;
     case K2: P_Falcon                        (argv+1, argc-1);  break;
-    //case K3: P_Extract                       (argv, argc);  break;
-    //case K4: P_LocalRedundancy               (argv, argc);  break;
-    //case K5: P_Simulation                    (argv, argc);  break;
-    //case K6: P_Visual                        (argv, argc);  break;
+    case K3: P_Filter                        (argv+1, argc-1);  break;
+    case K4: P_Filter_Visual                 (argv+1, argc-1);  break;
+    case K5: P_Inter                         (argv+1, argc-1);  break;
+    case K6: P_Inter_Visual                  (argv+1, argc-1);  break;
 
     default:
       PrintWarning("unknown menu option!");

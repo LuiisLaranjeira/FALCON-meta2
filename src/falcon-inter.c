@@ -242,7 +242,7 @@ int32_t main(int argc, char *argv[]){
   uint32_t    n, k, col, ref;
   double      gamma;
   Threads     *T;
-  
+
   P = (Parameters *) Malloc(1 * sizeof(Parameters));
   if((P->help = ArgsState(DEFAULT_HELP, p, argc, "-h")) == 1 || argc < 2){
     PrintMenuInter();
@@ -255,14 +255,14 @@ int32_t main(int argc, char *argv[]){
     }
 
   if(ArgsState(0, p, argc, "-s")){
-    PrintLevels(); 
+    PrintLevels();
     return EXIT_SUCCESS;
     }
 
   P->verbose  = ArgsState  (DEFAULT_VERBOSE, p, argc, "-v" );
   P->force    = ArgsState  (DEFAULT_FORCE,   p, argc, "-F" );
   P->level    = ArgsNum    (0, p, argc, "-l", MIN_LEV, MAX_LEV);
-  P->nThreads = ArgsNum    (DEFAULT_THREADS, p, argc, "-n", MIN_THREADS, 
+  P->nThreads = ArgsNum    (DEFAULT_THREADS, p, argc, "-n", MIN_THREADS,
   MAX_THREADS);
 
   P->nModels = 0;
@@ -282,13 +282,13 @@ int32_t main(int argc, char *argv[]){
     }
 
   gamma = DEFAULT_GAMMA;
-  for(n = 1 ; n < xargc ; ++n) 
-    if(strcmp(xargv[n], "-g") == 0) 
+  for(n = 1 ; n < xargc ; ++n)
+    if(strcmp(xargv[n], "-g") == 0)
       gamma = atof(xargv[n+1]);
 
   col = MAX_COLLISIONS;
-  for(n = 1 ; n < xargc ; ++n) 
-    if(strcmp(xargv[n], "-c") == 0) 
+  for(n = 1 ; n < xargc ; ++n)
+    if(strcmp(xargv[n], "-c") == 0)
       col = atoi(xargv[n+1]);
 
   P->col       = ArgsNum    (col,   p, argc, "-c", 1, 200);
@@ -367,7 +367,7 @@ int32_t main(int argc, char *argv[]){
   StopCalcAll(Time, clock());
   fprintf(stderr, "\n");
 
-  // STOP & 
+  // STOP &
   RemoveClock(Time);
   for(ref = 0 ; ref < P->nFiles ; ++ref)
     Free(T[ref].model);
