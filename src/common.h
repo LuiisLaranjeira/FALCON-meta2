@@ -76,4 +76,15 @@ char        *ArgsFileGen     (char *[], uint32_t, char *, char *, char *);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+/**
+ * @brief Checks if a string ends with a specified suffix
+ * 
+ * @param str String to check
+ * @param suffix Suffix to check for
+ * @return int 1 if str ends with suffix, 0 otherwise
+ */
+int         ends_with        (const char *str, const char *suffix);
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 #endif

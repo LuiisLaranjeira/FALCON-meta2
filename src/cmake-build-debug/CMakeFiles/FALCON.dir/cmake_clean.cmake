@@ -5,6 +5,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/FALCON.dir/common.c.o.d"
   "CMakeFiles/FALCON.dir/falcon.c.o"
   "CMakeFiles/FALCON.dir/falcon.c.o.d"
+  "CMakeFiles/FALCON.dir/file_compression.c.o"
+  "CMakeFiles/FALCON.dir/file_compression.c.o.d"
   "CMakeFiles/FALCON.dir/filters.c.o"
   "CMakeFiles/FALCON.dir/filters.c.o.d"
   "CMakeFiles/FALCON.dir/keys.c.o"

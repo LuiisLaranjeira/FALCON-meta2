@@ -201,6 +201,30 @@ falcon.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FALCON.dir/build.make CMakeFiles/FALCON.dir/falcon.c.s
 .PHONY : falcon.c.s
 
+file_compression.o: file_compression.c.o
+.PHONY : file_compression.o
+
+# target to build an object file
+file_compression.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FALCON.dir/build.make CMakeFiles/FALCON.dir/file_compression.c.o
+.PHONY : file_compression.c.o
+
+file_compression.i: file_compression.c.i
+.PHONY : file_compression.i
+
+# target to preprocess a source file
+file_compression.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FALCON.dir/build.make CMakeFiles/FALCON.dir/file_compression.c.i
+.PHONY : file_compression.c.i
+
+file_compression.s: file_compression.c.s
+.PHONY : file_compression.s
+
+# target to generate assembly for a file
+file_compression.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FALCON.dir/build.make CMakeFiles/FALCON.dir/file_compression.c.s
+.PHONY : file_compression.c.s
+
 filters.o: filters.c.o
 .PHONY : filters.o
 
@@ -555,6 +579,9 @@ help:
 	@echo "... falcon.o"
 	@echo "... falcon.i"
 	@echo "... falcon.s"
+	@echo "... file_compression.o"
+	@echo "... file_compression.i"
+	@echo "... file_compression.s"
 	@echo "... filters.o"
 	@echo "... filters.i"
 	@echo "... filters.s"

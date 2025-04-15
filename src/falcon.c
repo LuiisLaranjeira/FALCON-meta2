@@ -25,6 +25,7 @@
 #include "buffer.h"
 #include "levels.h"
 #include "common.h"
+#include "file_compression.h"
 #include "filters.h"
 #include "models.h"
 #include "pmodels.h"
@@ -533,7 +534,7 @@ void CompressTargetWKM(Threads T){
 // - - - - - - - - - - - - - - C O M P R E S S I O N - - - - - - - - - - - - - 
 
 void CompressTarget(Threads T){
-  FILE        *Reader = Fopen(P->base, "r");
+  FILE        *Reader = CFopen(P->base, "r");
   double      bits = 0;
   uint64_t    nBase = 0, r = 0, nSymbol, initNSymbol;
   uint32_t    n, k, idxPos, totModels, cModel;
@@ -810,7 +811,7 @@ void *CompressThreadInter(void *Thr){
 // - - - - - - - - - - - - - - - - R E F E R E N C E - - - - - - - - - - - - -
 
 void LoadReference(char *refName){
-  FILE     *Reader = Fopen(refName, "r");
+  FILE     *Reader = CFopen(refName, "r");
   uint32_t n;
   uint64_t idx = 0;
   uint64_t k, idxPos;
