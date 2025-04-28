@@ -861,7 +861,10 @@ void PrintArgs(Parameters *P, Threads T, char *ref, char *tar, uint32_t top){
   for( n = 0 ; n < P->nFiles ; ++n){
     fprintf(stderr, "  [+] Metagenomic filename ......... %s\n", P->files[n]);
     }
-  fprintf(stderr, "Database filename .................. %s\n", tar);
+  fprintf(stderr, "Number of Database files ........ %u\n", P->nDatabases);
+  for( n = 0 ; n < P->nDatabases ; ++n){
+    fprintf(stderr, "  [+] DB filename ......... %s\n", P->dbFiles[n]);
+  }
   fprintf(stderr, "\n");
   }
 
@@ -970,6 +973,33 @@ uint32_t ReadFNames(Parameters *P, char *arg, int x)
 
   return nFiles;
   }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+uint32_t ReadDBFNames(Parameters *P, char *arg, int x)
+{
+  uint32_t nFiles = 1, k = 0, argLen;
+
+  argLen = strlen(arg);
+  for( ; k != argLen ; ++k)
+    if(arg[k] == ':')
+      ++nFiles;
+
+  if(x == 1 && nFiles < 2){
+    fprintf(stderr, "Error: you need at least two input files!\n");
+    exit(1);
+  }
+
+  P->dbFiles = (char **) Malloc(nFiles * sizeof(char *));
+  P->dbFiles[0] = strtok(arg, ":");
+  TestReadFile(P->dbFiles[0]);
+  for(k = 1 ; k < nFiles ; ++k){
+    P->dbFiles[k] = strtok(NULL, ":");
+    TestReadFile(P->dbFiles[k]);
+  }
+
+  return nFiles;
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

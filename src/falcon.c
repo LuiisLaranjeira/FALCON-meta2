@@ -533,8 +533,8 @@ void CompressTargetWKM(Threads T){
 //////////////////////////////////////////////////////////////////////////////
 // - - - - - - - - - - - - - - C O M P R E S S I O N - - - - - - - - - - - - - 
 
-void CompressTarget(Threads T){
-  FILE        *Reader = CFopen(P->base, "r");
+void CompressTarget(Threads T, char *dbFile){
+  FILE        *Reader = CFopen(dbFile, "r");
   double      bits = 0;
   uint64_t    nBase = 0, r = 0, nSymbol, initNSymbol;
   uint32_t    n, k, idxPos, totModels, cModel;
@@ -577,7 +577,7 @@ void CompressTarget(Threads T){
                 initNSymbol, nSymbol);
                 }
               else
-                UpdateTop(BPBB(bits, nBase), conName, T.top, nBase);
+                UpdateTopWithDB(BPBB(bits, nBase), conName, T.top, nBase, P->currentDBIdx);
               #else
               UpdateTop(BPBB(bits, nBase), conName, T.top, nBase);
               #endif
@@ -648,7 +648,7 @@ void CompressTarget(Threads T){
       UpdateTopWP(BPBB(bits, nBase), conName, T.top, nBase,
       initNSymbol, nSymbol);
     else
-      UpdateTop(BPBB(bits, nBase), conName, T.top, nBase);
+      UpdateTopWithDB(BPBB(bits, nBase), conName, T.top, nBase, P->currentDBIdx);
     #else
     UpdateTop(BPBB(bits, nBase), conName, T.top, nBase);
     #endif
@@ -781,6 +781,9 @@ void CompressTargetInter(Threads T){
 
 void *CompressThread(void *Thr){
   Threads *T = (Threads *) Thr;
+
+  // Use the current database
+  char *currentDb = P->dbFiles[P->currentDBIdx];
   
   //  if(P->nModels == 1 && T->model[0].edits == 0){
   //    if(P->sample > 1){
@@ -794,7 +797,7 @@ void *CompressThread(void *Thr){
   #ifdef KMODELSUSAGE
   CompressTargetWKM(T[0]);
   #else
-  CompressTarget(T[0]);
+  CompressTarget(T[0], currentDb);
   #endif
 
   pthread_exit(NULL);
@@ -941,7 +944,7 @@ void LoadReferenceWKM(char *refName){
 
 void CompressAction(Threads *T, char *refName, char *baseName){
   pthread_t t[P->nThreads];
-  uint32_t n;
+  uint32_t n, dbIdx;
 
 #ifdef KMODELSUSAGE
   KModels = (KMODEL **) Malloc(P->nModels * sizeof(KMODEL *));
@@ -960,6 +963,7 @@ void CompressAction(Threads *T, char *refName, char *baseName){
     T[0].model[n].eDen);
   fprintf(stderr, "  [+] Loading %u metagenomic file(s):\n", P->nFiles);
 
+  
   for(n = 0 ; n < P->nFiles ; ++n){
     fprintf(stderr, "      [+] Loading %u ... ", n+1);
     LoadReference(P->files[n]);
@@ -968,12 +972,21 @@ void CompressAction(Threads *T, char *refName, char *baseName){
   fprintf(stderr, "  [+] Done! Learning phase complete!\n");
 #endif
 
-  fprintf(stderr, "  [+] Compressing database ......... ");
-  for(n = 0 ; n < P->nThreads ; ++n)
-    pthread_create(&(t[n+1]), NULL, CompressThread, (void *) &(T[n]));
-  for(n = 0 ; n < P->nThreads ; ++n) // DO NOT JOIN FORS!
-    pthread_join(t[n+1], NULL);
-  fprintf(stderr, "Done!\n");
+  fprintf(stderr, "  [+] Compressing database ......... %u file(s):\n", P->nDatabases);
+
+  for(dbIdx = 0 ; dbIdx < P->nDatabases ; ++dbIdx){
+    fprintf(stderr, "      [+] Loading %u ... ", dbIdx+1);
+
+    // Set current database for threads
+    P->currentDBIdx = dbIdx;
+
+    for(n = 0 ; n < P->nThreads ; ++n)
+      pthread_create(&(t[n+1]), NULL, CompressThread, (void *) &(T[n]));
+    for(n = 0 ; n < P->nThreads ; ++n) // DO NOT JOIN FORS!
+      pthread_join(t[n+1], NULL);
+    fprintf(stderr, "Done!\n");
+
+  }
 }
 
 void CompressActionInter(Threads *T, uint32_t ref){
@@ -1244,8 +1257,8 @@ int32_t P_Falcon(char **argv, int argc){
       }
     }
 
-  P->base    = argv[argc-1];
-  P->nFiles  = ReadFNames (P, argv[argc-2], 0);
+  P->nDatabases = ReadDBFNames (P, argv[argc-1], 0);
+  P->nFiles     = ReadFNames (P, argv[argc-2], 0);
   fprintf(stderr, "\n");
   if(P->verbose) PrintArgs(P, T[0], argv[argc-2], argv[argc-1], topSize);
 
@@ -1279,7 +1292,7 @@ int32_t P_Falcon(char **argv, int argc){
   if(P->local == 1)
     PrintTopWP(OUTPUT, P->top, topSize);
   else
-    PrintTop(OUTPUT, P->top, topSize);
+    PrintTop(OUTPUT, P->top, topSize, P->dbFiles);
   #else
   PrintTop(OUTPUT, P->top, topSize);
   #endif

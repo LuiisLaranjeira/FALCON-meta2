@@ -64,6 +64,7 @@ uint8_t     CmpCheckSum      (uint32_t, uint32_t);
 void        FAccessWPerm     (char    *);
 void        CalcProgress     (uint64_t , uint64_t);
 uint32_t    ReadFNames       (Parameters *, char *, int);
+uint32_t    ReadDBFNames     (Parameters *, char *, int);
 void        PrintArgs        (Parameters *, Threads, char *, char *, uint32_t);
 void        PrintArgsFilter  (EYEPARAM *);
 void        PrintArgsInter   (Parameters *, Threads);

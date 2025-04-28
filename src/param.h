@@ -37,8 +37,11 @@ typedef struct{
   U32      nModels;
   U32      nThreads;
   U8       nFiles;
+  U8       nDatabases;
+  U8       currentDBIdx;
   // GULL ADDED ====
   char     **files;
+  char     **dbFiles;
   double   **matrix;
   uint8_t  *labels;
   uint32_t ref;

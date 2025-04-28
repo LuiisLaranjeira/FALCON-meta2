@@ -1,15 +1,16 @@
-1	18959	98.721	gi|10313991|ref|NC_002549.1|_Zaire_ebolavirus_isolate_Ebola_virus/H.sapiens-tc/COD/1976/Yambuku-Mayinga,_complete_genome
-2	18935	 6.806	gi|302315369|ref|NC_014372.1|_Tai_Forest_ebolavirus_isolate_Tai_Forest_virus/H.sapiens-tc/CIV/1994/Pauleoula-CI,_complete_genome
-3	18940	 5.104	gi|302371213|ref|NC_014373.1|_Bundibugyo_ebolavirus_isolate_Bundibugyo_virus/H.sapiens-tc/UGA/2007/Butalya-811250,_complete_genome
-4	18891	 3.280	gi|22789222|ref|NC_004161.1|_Reston_ebolavirus_isolate_Reston_virus/M.fascicularis-tc/USA/1989/Philippines89-Pennsylvania,_complete_genome
-5	18875	 2.375	gi|55770807|ref|NC_006432.1|_Sudan_ebolavirus_isolate_Sudan_virus/H.sapiens-tc/UGA/2000/Gulu-808892,_complete_genome
-6	1259013	 1.022	gi|363539767|ref|NC_016072.1|_Megavirus_chiliensis,_complete_genome
-7	1350	 0.763	gi|146411809|ref|NC_009450.1|_Honeysuckle_yellow_vein_mosaic_beta-[Japan:Miyizaki:2001]_DNA,_complete_genome
-8	3057	 0.505	gi|20153367|ref|NC_003619.1|_Groundnut_bud_necrosis_virus_segment_S,_complete_sequence
-9	144575	 0.423	gi|12084983|ref|NC_002642.1|_Yaba-like_disease_virus,_complete_genome
-10	3105	 0.357	gi|1013949526|ref|NC_029800.1|_Iris_yellow_spot_virus_non-structural_protein_(NSs)_and_nucleoprotein_(N)_genes,_complete_cds
-11	59866	 0.344	gi|939482425|ref|NC_004913.3|_Stx1_converting_phage_DNA,_complete_genome
-12	9130	 0.237	gi|985485914|ref|NC_029052.1|_Goose_dicistrovirus_isolate_UW1,_complete_genome
-13	8432	 0.191	gi|9635564|ref|NC_002468.1|_Cherry_necrotic_rusty_mottle_virus,_complete_genome
-14	8911	 0.177	gi|20153365|ref|NC_003614.1|_Peanut_bud_necrosis_virus_L_protein_(L)_gene,_complete_cds
-15	47021	 0.163	gi|148609382|ref|NC_009514.1|_Phage_cdtI_DNA,_complete_genome
+Rank	Size	Similarity	Sequence	Database
+1	18959	98.721	gi|10313991|ref|NC_002549.1|_Zaire_ebolavirus_isolate_Ebola_virus/H.sapiens-tc/COD/1976/Yambuku-Mayinga,_complete_genome	VDB.fa.gz
+2	18959	98.721	gi|10313991|ref|NC_002549.1|_Zaire_ebolavirus_isolate_Ebola_virus/H.sapiens-tc/COD/1976/Yambuku-Mayinga,_complete_genome	VDB.fa.gz
+3	18935	 6.806	gi|302315369|ref|NC_014372.1|_Tai_Forest_ebolavirus_isolate_Tai_Forest_virus/H.sapiens-tc/CIV/1994/Pauleoula-CI,_complete_genome	VDB.fa.gz
+4	18935	 6.806	gi|302315369|ref|NC_014372.1|_Tai_Forest_ebolavirus_isolate_Tai_Forest_virus/H.sapiens-tc/CIV/1994/Pauleoula-CI,_complete_genome	VDB.fa.gz
+5	18940	 5.104	gi|302371213|ref|NC_014373.1|_Bundibugyo_ebolavirus_isolate_Bundibugyo_virus/H.sapiens-tc/UGA/2007/Butalya-811250,_complete_genome	VDB.fa.gz
+6	18940	 5.104	gi|302371213|ref|NC_014373.1|_Bundibugyo_ebolavirus_isolate_Bundibugyo_virus/H.sapiens-tc/UGA/2007/Butalya-811250,_complete_genome	VDB.fa.gz
+7	18891	 3.280	gi|22789222|ref|NC_004161.1|_Reston_ebolavirus_isolate_Reston_virus/M.fascicularis-tc/USA/1989/Philippines89-Pennsylvania,_complete_genome	VDB.fa.gz
+8	18891	 3.280	gi|22789222|ref|NC_004161.1|_Reston_ebolavirus_isolate_Reston_virus/M.fascicularis-tc/USA/1989/Philippines89-Pennsylvania,_complete_genome	VDB.fa.gz
+9	18875	 2.375	gi|55770807|ref|NC_006432.1|_Sudan_ebolavirus_isolate_Sudan_virus/H.sapiens-tc/UGA/2000/Gulu-808892,_complete_genome	VDB.fa.gz
+10	18875	 2.375	gi|55770807|ref|NC_006432.1|_Sudan_ebolavirus_isolate_Sudan_virus/H.sapiens-tc/UGA/2000/Gulu-808892,_complete_genome	VDB.fa.gz
+11	1259013	 1.022	gi|363539767|ref|NC_016072.1|_Megavirus_chiliensis,_complete_genome	VDB.fa.gz
+12	1259013	 1.022	gi|363539767|ref|NC_016072.1|_Megavirus_chiliensis,_complete_genome	VDB.fa.gz
+13	1350	 0.763	gi|146411809|ref|NC_009450.1|_Honeysuckle_yellow_vein_mosaic_beta-[Japan:Miyizaki:2001]_DNA,_complete_genome	VDB.fa.gz
+14	1350	 0.763	gi|146411809|ref|NC_009450.1|_Honeysuckle_yellow_vein_mosaic_beta-[Japan:Miyizaki:2001]_DNA,_complete_genome	VDB.fa.gz
+15	3057	 0.505	gi|20153367|ref|NC_003619.1|_Groundnut_bud_necrosis_virus_segment_S,_complete_sequence	VDB.fa.gz
