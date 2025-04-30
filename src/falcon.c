@@ -26,6 +26,7 @@
 #include "levels.h"
 #include "common.h"
 #include "file_compression.h"
+#include "serialization.h"
 #include "filters.h"
 #include "models.h"
 #include "pmodels.h"
@@ -1176,6 +1177,9 @@ int32_t P_Falcon(char **argv, int argc){
 
   P->verbose  = ArgsState  (DEFAULT_VERBOSE, p, argc, "-v", "--verbose");
   P->force    = ArgsState  (DEFAULT_FORCE,   p, argc, "-F", "--force");
+  P->saveModel  = ArgsState  (0, p, argc, "-S", "--save-model");
+  P->loadModel  = ArgsState  (0, p, argc, "-L", "--load-model" );
+  P->modelFile = ArgsFileGen(p, argc, "-M", "falcon_model", ".fdb");
   #ifdef LOCAL_SIMILARITY
   P->local    = ArgsState  (DEFAULT_LOCAL,   p, argc, "-Z", "--local");
   #endif

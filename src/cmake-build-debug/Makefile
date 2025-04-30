@@ -489,6 +489,30 @@ pmodels.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/FALCON.dir/build.make CMakeFiles/FALCON.dir/pmodels.c.s
 .PHONY : pmodels.c.s
 
+serialization.o: serialization.c.o
+.PHONY : serialization.o
+
+# target to build an object file
+serialization.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FALCON.dir/build.make CMakeFiles/FALCON.dir/serialization.c.o
+.PHONY : serialization.c.o
+
+serialization.i: serialization.c.i
+.PHONY : serialization.i
+
+# target to preprocess a source file
+serialization.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FALCON.dir/build.make CMakeFiles/FALCON.dir/serialization.c.i
+.PHONY : serialization.c.i
+
+serialization.s: serialization.c.s
+.PHONY : serialization.s
+
+# target to generate assembly for a file
+serialization.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/FALCON.dir/build.make CMakeFiles/FALCON.dir/serialization.c.s
+.PHONY : serialization.c.s
+
 stream.o: stream.c.o
 .PHONY : stream.o
 
@@ -615,6 +639,9 @@ help:
 	@echo "... pmodels.o"
 	@echo "... pmodels.i"
 	@echo "... pmodels.s"
+	@echo "... serialization.o"
+	@echo "... serialization.i"
+	@echo "... serialization.s"
 	@echo "... stream.o"
 	@echo "... stream.i"
 	@echo "... stream.s"

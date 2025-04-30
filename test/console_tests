@@ -1,0 +1,66 @@
+ll@DESKTOP-5S9JNDB:~/FALCON-meta2/test$ ./FALCON meta -v -F -t 15 -l 47 -x top.txt reads.fq VDB.fa.gz:VDB2.fa.gz
+
+==[ CONFIGURATION ]=================
+Verbose mode ....................... yes
+Force mode ......................... yes
+Local similarity mode .............. no
+Compression level .................. 47
+Sub-sampling ....................... 1
+Number of threads .................. 2
+Top size ........................... 15
+Reference model 1:
+  [+] Context order ................ 6
+  [+] Alpha denominator ............ 1
+  [+] Inverted repeats ............. yes
+  [+] Allowable substitutions ...... 0
+Reference model 2:
+  [+] Context order ................ 11
+  [+] Alpha denominator ............ 10
+  [+] Inverted repeats ............. yes
+  [+] Allowable substitutions ...... 0
+Reference model 3:
+  [+] Context order ................ 18
+  [+] Alpha denominator ............ 500
+  [+] Inverted repeats ............. yes
+  [+] Allowable substitutions ...... 5
+  [+] Substitutions alpha den ...... 10
+Gamma .............................. 0.85
+Maximum Collisions ................. 10
+Output top filename ................ top.txt
+Number of metagenomic files ........ 1
+  [+] Metagenomic filename ......... reads.fq
+Number of Database files ........ 2
+  [+] DB filename ......... VDB.fa.gz
+  [+] DB filename ......... VDB2.fa.gz
+
+==[ PROCESSING ]====================
+  [+] Loading 1 metagenomic file(s):
+      [+] Loading 1 ... Done! 
+  [+] Done! Learning phase complete!
+  [+] Compressing database ......... 2 file(s):
+      [+] Loading 1 ... Done!
+      [+] Loading 2 ... Done!
+  [+] Sorting top .................. Done!
+  [+] Printing to output file ...... Done!
+  [+] Freeing compression models ... Done!
+
+==[ RESULTS ]=======================
+  [*] Top 15:
+  [*] 1         18959   98.7209 gi|10313991|ref|NC_002549.1|_Zaire_ebolavirus_isolate_Ebola_virus/H.sapiens-tc/COD/1976/Yambuku-Mayinga,_complete_genome
+  [*] 2         18959   98.7209 gi|10313991|ref|NC_002549.1|_Zaire_ebolavirus_isolate_Ebola_virus/H.sapiens-tc/COD/1976/Yambuku-Mayinga,_complete_genome
+  [*] 3         18935    6.8056 gi|302315369|ref|NC_014372.1|_Tai_Forest_ebolavirus_isolate_Tai_Forest_virus/H.sapiens-tc/CIV/1994/Pauleoula-CI,_complete_genome
+  [*] 4         18935    6.8056 gi|302315369|ref|NC_014372.1|_Tai_Forest_ebolavirus_isolate_Tai_Forest_virus/H.sapiens-tc/CIV/1994/Pauleoula-CI,_complete_genome
+  [*] 5         18940    5.1038 gi|302371213|ref|NC_014373.1|_Bundibugyo_ebolavirus_isolate_Bundibugyo_virus/H.sapiens-tc/UGA/2007/Butalya-811250,_complete_genome
+  [*] 6         18940    5.1038 gi|302371213|ref|NC_014373.1|_Bundibugyo_ebolavirus_isolate_Bundibugyo_virus/H.sapiens-tc/UGA/2007/Butalya-811250,_complete_genome
+  [*] 7         18891    3.2799 gi|22789222|ref|NC_004161.1|_Reston_ebolavirus_isolate_Reston_virus/M.fascicularis-tc/USA/1989/Philippines89-Pennsylvania,_complete_genome
+  [*] 8         18891    3.2799 gi|22789222|ref|NC_004161.1|_Reston_ebolavirus_isolate_Reston_virus/M.fascicularis-tc/USA/1989/Philippines89-Pennsylvania,_complete_genome
+  [*] 9         18875    2.3754 gi|55770807|ref|NC_006432.1|_Sudan_ebolavirus_isolate_Sudan_virus/H.sapiens-tc/UGA/2000/Gulu-808892,_complete_genome
+  [*] 10        18875    2.3754 gi|55770807|ref|NC_006432.1|_Sudan_ebolavirus_isolate_Sudan_virus/H.sapiens-tc/UGA/2000/Gulu-808892,_complete_genome
+  [*] 11        1259013  1.0223 gi|363539767|ref|NC_016072.1|_Megavirus_chiliensis,_complete_genome
+  [*] 12        1259013  1.0223 gi|363539767|ref|NC_016072.1|_Megavirus_chiliensis,_complete_genome
+  [*] 13        1350     0.7626 gi|146411809|ref|NC_009450.1|_Honeysuckle_yellow_vein_mosaic_beta-[Japan:Miyizaki:2001]_DNA,_complete_genome
+  [*] 14        1350     0.7626 gi|146411809|ref|NC_009450.1|_Honeysuckle_yellow_vein_mosaic_beta-[Japan:Miyizaki:2001]_DNA,_complete_genome
+  [*] 15        3057     0.5048 gi|20153367|ref|NC_003619.1|_Groundnut_bud_necrosis_virus_segment_S,_complete_sequence
+
+==[ STATISTICS ]====================
+Total CPU time: 10 second(s).

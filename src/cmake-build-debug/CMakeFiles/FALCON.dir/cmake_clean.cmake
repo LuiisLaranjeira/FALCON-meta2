@@ -29,6 +29,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/FALCON.dir/parser.c.o.d"
   "CMakeFiles/FALCON.dir/pmodels.c.o"
   "CMakeFiles/FALCON.dir/pmodels.c.o.d"
+  "CMakeFiles/FALCON.dir/serialization.c.o"
+  "CMakeFiles/FALCON.dir/serialization.c.o.d"
   "CMakeFiles/FALCON.dir/stream.c.o"
   "CMakeFiles/FALCON.dir/stream.c.o.d"
   "CMakeFiles/FALCON.dir/time.c.o"

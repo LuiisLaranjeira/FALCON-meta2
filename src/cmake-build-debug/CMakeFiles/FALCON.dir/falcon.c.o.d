@@ -103,6 +103,7 @@ CMakeFiles/FALCON.dir/falcon.c.o: /home/ll/FALCON-meta2/src/falcon.c \
  /home/ll/FALCON-meta2/src/parser.h /home/ll/FALCON-meta2/src/levels.h \
  /home/ll/FALCON-meta2/src/common.h \
  /home/ll/FALCON-meta2/src/file_compression.h \
+ /home/ll/FALCON-meta2/src/serialization.h \
  /home/ll/FALCON-meta2/src/filters.h /home/ll/FALCON-meta2/src/kmodels.h \
  /home/ll/FALCON-meta2/src/labels.h /home/ll/FALCON-meta2/src/paint.h \
  /home/ll/FALCON-meta2/src/stream.h

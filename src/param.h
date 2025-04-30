@@ -51,6 +51,10 @@ typedef struct{
   uint8_t  *image;
   char     *output;
   char     *base;
+  // ===============
+  U8       saveModel;  // Flag to save models after compression
+  U8       loadModel;  // Flag to load models instead of compressing
+  char     *modelFile; // File to save/load model
   }
 Parameters;
 
