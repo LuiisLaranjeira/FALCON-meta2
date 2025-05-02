@@ -1,4 +1,5 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/FALCON.dir/link.d"
   "CMakeFiles/FALCON.dir/buffer.c.o"
   "CMakeFiles/FALCON.dir/buffer.c.o.d"
   "CMakeFiles/FALCON.dir/common.c.o"
@@ -17,6 +18,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/FALCON.dir/labels.c.o.d"
   "CMakeFiles/FALCON.dir/levels.c.o"
   "CMakeFiles/FALCON.dir/levels.c.o.d"
+  "CMakeFiles/FALCON.dir/magnet_integration.c.o"
+  "CMakeFiles/FALCON.dir/magnet_integration.c.o.d"
   "CMakeFiles/FALCON.dir/mem.c.o"
   "CMakeFiles/FALCON.dir/mem.c.o.d"
   "CMakeFiles/FALCON.dir/models.c.o"

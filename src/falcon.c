@@ -27,6 +27,7 @@
 #include "common.h"
 #include "file_compression.h"
 #include "serialization.h"
+#include "magnet_integration.h"
 #include "filters.h"
 #include "models.h"
 #include "pmodels.h"
@@ -946,6 +947,8 @@ void LoadReferenceWKM(char *refName){
 void CompressAction(Threads *T, char *refName, char *baseName){
   pthread_t t[P->nThreads];
   uint32_t n, dbIdx;
+  char     filteredFile[MAX_NAME]; // Enough space for filename
+  int      useMagnetFilter = 0;
 
 #ifdef KMODELSUSAGE
   KModels = (KMODEL **) Malloc(P->nModels * sizeof(KMODEL *));
@@ -964,11 +967,49 @@ void CompressAction(Threads *T, char *refName, char *baseName){
     T[0].model[n].eDen);
   fprintf(stderr, "  [+] Loading %u metagenomic file(s):\n", P->nFiles);
 
-  
   for(n = 0 ; n < P->nFiles ; ++n){
-    fprintf(stderr, "      [+] Loading %u ... ", n+1);
-    LoadReference(P->files[n]);
-    fprintf(stderr, "Done! \n");
+    if(P->useMagnet) {
+      useMagnetFilter = 1;
+
+      strcpy(filteredFile, "falcon_magnet_filtered.fq");
+
+      // Create a temporary filename for filtered reference different
+      //snprintf(filteredFile, sizeof(filteredFile), "%s.magnet_filtered.fq", P->files[n]);
+
+      fprintf(stderr, "      [+] Applying MAGNET filter to %s ... \n", P->files[n]);
+
+      // Run MAGNET to filter the reference file
+      int result = RunMagnet(
+      P->files[n],
+      P->magnetFilter,
+      P->magnetThreshold,
+      P->magnetLevel,
+      P->magnetInvert,
+      P->magnetVerbose,
+      P->magnetPortion,
+      filteredFile,
+      P->nThreads);
+
+      if(result != 0) {
+        fprintf(stderr, "      [+] MAGNET filtering failed with code %d.\n", result);
+        fprintf(stderr, "      [+] Using original reference file %s instead.\n", P->files[n]);
+        fprintf(stderr, "      [+] Loading original reference %s ... ", P->files[n]);
+        // Load the original reference file
+        LoadReference(P->files[n]);
+        fprintf(stderr, "Done!\n");
+      }
+      else {
+        fprintf(stderr, "      [+] Loading filtered reference %s ... ", filteredFile);
+        // Load the filtered reference file
+        LoadReference(filteredFile);
+        fprintf(stderr, "Done!\n");
+      }
+
+    } else {
+      fprintf(stderr, "      [+] Loading %u ... ", n+1);
+      LoadReference(P->files[n]);
+      fprintf(stderr, "Done! \n");
+    }
   }
   fprintf(stderr, "  [+] Done! Learning phase complete!\n");
 #endif
@@ -1188,6 +1229,36 @@ int32_t P_Falcon(char **argv, int argc){
   topSize     = ArgsNum    (DEF_TOP,         p, argc, "-t", MIN_TOP, MAX_TOP);
   P->nThreads = ArgsNum    (DEFAULT_THREADS, p, argc, "-n", MIN_THREADS,
   MAX_THREADS);
+
+  P->useMagnet       = ArgsState  (0, p, argc, "-mg", "--magnet");
+  P->magnetVerbose   = ArgsState  (DEFAULT_VERBOSE, p, argc, "-mv", "--magnet-verbose");
+  P->magnetFilter    = ArgsString (NULL, p, argc, "-mf", "--magnet-filter");
+  P->magnetThreshold = ArgsDouble (0.9, p, argc, "-mt");
+  P->magnetLevel     = ArgsNum    (36, p, argc, "-ml", MIN_LEV, 44);
+  P->magnetInvert    = ArgsState  (0, p, argc, "-mi", "--magnet-invert");
+  P->magnetPortion   = ArgsNum    (1, p, argc, "-mp", MIN_SAP, MAX_SAP);
+
+  if(P->useMagnet) {
+    if(!IsMagnetAvailable()) {
+      fprintf(stderr, "Error: MAGNET filtering requested but MAGNET not found.\n");
+      Free(P);
+      return EXIT_FAILURE;
+    }
+
+    if(P->magnetFilter == NULL || strlen(P->magnetFilter) == 0){
+      fprintf(stderr,
+        "Error: MAGNET filtering enabled but no filter file specified.\n"
+              "Please provide a FASTA filter file with -mf option.\n");
+      Free(P);
+      return EXIT_FAILURE;
+    }
+
+    TestReadFile(P->magnetFilter);
+
+    if (P->verbose) {
+      PrintMagnetVersion();
+    }
+  }
 
   P->nModels = 0;
   for(n = 1 ; n < argc ; ++n)

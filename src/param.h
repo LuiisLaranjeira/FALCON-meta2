@@ -55,6 +55,14 @@ typedef struct{
   U8       saveModel;  // Flag to save models after compression
   U8       loadModel;  // Flag to load models instead of compressing
   char     *modelFile; // File to save/load model
+  // ===============
+  U8       useMagnet;        // Flag to enable MAGNET filtering
+  char     *magnetFilter;    // FASTA file for MAGNET filtering
+  double   magnetThreshold;  // Threshold for MAGNET filtering
+  U32      magnetLevel;      // Sensitivity level for MAGNET filtering
+  U8       magnetVerbose;    // Verbose mode for MAGNET filtering
+  U8       magnetInvert;     // Invert MAGNET filtering (complement)
+  U32      magnetPortion;    // Portion of acceptance for MAGNET
   }
 Parameters;
 

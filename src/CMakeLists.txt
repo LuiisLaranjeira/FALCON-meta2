@@ -14,6 +14,6 @@ SET(CMAKE_BUILD_TYPE Debug)
 add_executable (FALCON falcon.c mem.c time.c msg.c parser.c common.c buffer.c stream.c levels.c models.c pmodels.c kmodels.c top.c defs.h param.h keys.c filters.c labels.c paint.c
         file_compression.c
         serialization.c
-        serialization.h)
+        magnet_integration.c)
 
 TARGET_LINK_LIBRARIES(FALCON pthread)
