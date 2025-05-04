@@ -18,7 +18,7 @@ typedef struct {
     uint64_t timestamp;          // Time when serialization was performed
     uint32_t hashSize;           // Hash table size used
     uint32_t maxCollisions;      // Maximum collisions allowed
-} DBFileHeader;
+} ModelHeader;
 
 typedef struct {
     uint32_t ctx;                // Context order

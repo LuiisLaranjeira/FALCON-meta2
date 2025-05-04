@@ -9,21 +9,14 @@
 
 // Helper function to serialize a hashtable to file
 static int SerializeHashTable(FILE *F, HashTable *HT) {
-  // Write index array
+  // Write index array in one go
   if(fwrite(HT->index, sizeof(ENTMAX), HASH_SIZE, F) != HASH_SIZE)
     return -1;
 
-  // Write each hash entry
+  // Write entries more efficiently - single write per hash index
   for(uint32_t i = 0; i < HASH_SIZE; i++) {
-    for(uint32_t j = 0; j < HT->maxC; j++) {
-      // Write key
-      if(fwrite(&HT->entries[i][j].key, sizeof(HT->entries[i][j].key), 1, F) != 1)
-        return -1;
-
-      // Write counters
-      if(fwrite(&HT->entries[i][j].counters, sizeof(HT->entries[i][j].counters), 1, F) != 1)
-        return -1;
-    }
+    if(fwrite(HT->entries[i], sizeof(Entry), HT->maxC, F) != HT->maxC)
+      return -2;
   }
 
   return 0;
@@ -35,24 +28,22 @@ static int DeserializeHashTable(FILE *F, HashTable *HT, uint32_t col) {
   HT->maxC = col;
   HT->index = (ENTMAX *) Calloc(HASH_SIZE, sizeof(ENTMAX));
   HT->entries = (Entry **) Calloc(HASH_SIZE, sizeof(Entry *));
+  if(!HT->index || !HT->entries)
+    return -1;
 
   // Read index array
   if(fread(HT->index, sizeof(ENTMAX), HASH_SIZE, F) != HASH_SIZE)
-    return -1;
+    return -2;
 
-  // Allocate and read each hash entry
+  // Allocate and read each hash entry block
   for(uint32_t i = 0; i < HASH_SIZE; i++) {
     HT->entries[i] = (Entry *) Calloc(HT->maxC, sizeof(Entry));
+    if(!HT->entries[i])
+      return -3;
 
-    for(uint32_t j = 0; j < HT->maxC; j++) {
-      // Read key
-      if(fread(&HT->entries[i][j].key, sizeof(HT->entries[i][j].key), 1, F) != 1)
-        return -1;
-
-      // Read counters
-      if(fread(&HT->entries[i][j].counters, sizeof(HT->entries[i][j].counters), 1, F) != 1)
-        return -1;
-    }
+    // Read entire entry array at once
+    if(fread(HT->entries[i], sizeof(Entry), HT->maxC, F) != HT->maxC)
+      return -4;
   }
 
   return 0;
@@ -68,18 +59,25 @@ static int SerializeArray(FILE *F, Array *AR, uint64_t nPModels) {
 static int DeserializeArray(FILE *F, Array *AR, uint64_t nPModels) {
   uint64_t size = nPModels << 2; // * 4 for ACGT
   AR->counters = (ACC *) Calloc(size, sizeof(ACC));
-  return fread(AR->counters, sizeof(ACC), size, F) != size ? -1 : 0;
+  if(!AR->counters)
+    return -1;
+    
+  return fread(AR->counters, sizeof(ACC), size, F) != size ? -2 : 0;
 }
 
 int SaveModels(const char *filename, CModel **Models, uint32_t nModels, uint32_t col) {
-  FILE *F = fopen(filename, "wb");
-  if(!F) {
-    fprintf(stderr, "Error: Cannot open file %s for writing\n", filename);
+  // Validate input parameters
+  if(!filename || !Models || nModels == 0) {
+    fprintf(stderr, "Error: Invalid parameters for SaveModels\n");
     return -1;
   }
 
+  // Use common file handler with error checking
+  FILE *F = Fopen(filename, "wb");
+
   // Write file header
-  DBFileHeader header;
+  ModelHeader header;
+  memset(&header, 0, sizeof(ModelHeader)); // Ensure clean initialization
   header.magic = MODEL_MAGIC_NUMBER;
   header.version = MODEL_VERSION;
   header.nModels = nModels;
@@ -88,18 +86,24 @@ int SaveModels(const char *filename, CModel **Models, uint32_t nModels, uint32_t
   header.hashSize = HASH_SIZE;
   header.maxCollisions = col;
 
-  if(fwrite(&header, sizeof(DBFileHeader), 1, F) != 1) {
+  if(fwrite(&header, sizeof(ModelHeader), 1, F) != 1) {
     fprintf(stderr, "Error writing model file header\n");
-    fclose(F);
-    return -2;
+    Fclose(F);
+    return -3;
   }
 
   // For each model
   for(uint32_t n = 0; n < nModels; n++) {
     CModel *M = Models[n];
+    if(!M) {
+      fprintf(stderr, "Error: NULL model at index %u\n", n);
+      Fclose(F);
+      return -4;
+    }
 
     // Write model entry header
     ModelMeta entryHeader;
+    memset(&entryHeader, 0, sizeof(ModelMeta)); // Ensure clean initialization
     entryHeader.ctx = M->ctx;
     entryHeader.alphaDen = M->alphaDen;
     entryHeader.ir = M->ir;
@@ -109,12 +113,11 @@ int SaveModels(const char *filename, CModel **Models, uint32_t nModels, uint32_t
     entryHeader.nPModels = M->nPModels;
     entryHeader.maxCount = M->maxCount;
     entryHeader.multiplier = M->multiplier;
-    entryHeader.dataSize = 0; // Will be calculated based on mode
 
     if(fwrite(&entryHeader, sizeof(ModelMeta), 1, F) != 1) {
       fprintf(stderr, "Error writing model entry header for model %u\n", n);
-      fclose(F);
-      return -3;
+      Fclose(F);
+      return -5;
     }
 
     // Save model data
@@ -128,60 +131,77 @@ int SaveModels(const char *filename, CModel **Models, uint32_t nModels, uint32_t
         break;
       default:
         fprintf(stderr, "Unknown model mode: %u\n", M->mode);
-        fclose(F);
-        return -4;
+        Fclose(F);
+        return -6;
     }
 
     if(result != 0) {
-      fprintf(stderr, "Error serializing model %u data\n", n);
-      fclose(F);
-      return -5;
+      fprintf(stderr, "Error serializing model %u data: %d\n", n, result);
+      Fclose(F);
+      return -7;
     }
   }
 
-  fclose(F);
+  // Ensure data is committed to disk
+  fflush(F);
+  int fd = fileno(F);
+  if(fd >= 0) {
+    fsync(fd);
+  }
+  
+  Fclose(F);
   return 0;
 }
 
 int LoadModels(const char *filename, CModel ***ModelsPtr, uint32_t *nModels, uint32_t *col) {
-  FILE *F = fopen(filename, "rb");
-  if(!F) {
-    fprintf(stderr, "Error: Cannot open file %s for reading\n", filename);
+  // Validate input parameters
+  if(!filename || !ModelsPtr || !nModels || !col) {
+    fprintf(stderr, "Error: Invalid parameters for LoadModels\n");
     return -1;
   }
+  
+  *ModelsPtr = NULL;
+  *nModels = 0;
+  *col = 0;
+
+  // Use common file handler with error checking
+  FILE *F = Fopen(filename, "rb");
 
   // Read file header
-  DBFileHeader header;
-  if(fread(&header, sizeof(DBFileHeader), 1, F) != 1) {
+  ModelHeader header;
+  if(fread(&header, sizeof(ModelHeader), 1, F) != 1) {
     fprintf(stderr, "Error reading model file header\n");
-    fclose(F);
-    return -2;
+    Fclose(F);
+    return -3;
   }
 
   // Validate header
   if(header.magic != MODEL_MAGIC_NUMBER) {
     fprintf(stderr, "Error: Invalid model file format (wrong magic number)\n");
-    fclose(F);
-    return -3;
+    Fclose(F);
+    return -4;
   }
 
   if(header.version != MODEL_VERSION) {
     fprintf(stderr, "Error: Unsupported model file version: %u\n", header.version);
-    fclose(F);
-    return -4;
+    Fclose(F);
+    return -5;
   }
 
   if(header.alphabetSize != ALPHABET_SIZE) {
     fprintf(stderr, "Error: Model file has different alphabet size: %u (expected %u)\n",
             header.alphabetSize, ALPHABET_SIZE);
-    fclose(F);
-    return -5;
+    Fclose(F);
+    return -6;
   }
 
-  // Allocate models
+  // Allocate models array using common memory functions
   CModel **Models = (CModel **) Malloc(header.nModels * sizeof(CModel *));
-  *nModels = header.nModels;
-  *col = header.maxCollisions;
+  
+  // Initialize to NULL for safe cleanup
+  for(uint32_t i = 0; i < header.nModels; i++) {
+    Models[i] = NULL;
+  }
 
   // For each model
   for(uint32_t n = 0; n < header.nModels; n++) {
@@ -190,14 +210,12 @@ int LoadModels(const char *filename, CModel ***ModelsPtr, uint32_t *nModels, uin
     if(fread(&entryHeader, sizeof(ModelMeta), 1, F) != 1) {
       fprintf(stderr, "Error reading model entry header for model %u\n", n);
       // Free already loaded models
-      for(uint32_t i = 0; i < n; i++)
-        FreeCModel(Models[i]);
-      Free(Models);
-      fclose(F);
-      return -6;
+      FreeLoadedModels(Models, n);
+      Fclose(F);
+      return -8;
     }
 
-    // Create model structure
+    // Create model structure using common memory allocation
     Models[n] = (CModel *) Calloc(1, sizeof(CModel));
     CModel *M = Models[n];
 
@@ -235,55 +253,59 @@ int LoadModels(const char *filename, CModel ***ModelsPtr, uint32_t *nModels, uin
         break;
       default:
         fprintf(stderr, "Unknown model mode: %u\n", M->mode);
-        // Free already loaded models
-        for(uint32_t i = 0; i <= n; i++)
-          FreeCModel(Models[i]);
-        Free(Models);
-        fclose(F);
-        return -7;
+        FreeLoadedModels(Models, n+1);
+        Fclose(F);
+        return -12;
     }
 
     if(result != 0) {
-      fprintf(stderr, "Error deserializing model %u data\n", n);
-      // Free already loaded models
-      for(uint32_t i = 0; i <= n; i++)
-        FreeCModel(Models[i]);
-      Free(Models);
-      fclose(F);
-      return -8;
+      fprintf(stderr, "Error deserializing model %u data: %d\n", n, result);
+      FreeLoadedModels(Models, n+1);
+      Fclose(F);
+      return -13;
     }
   }
 
   *ModelsPtr = Models;
-  fclose(F);
+  *nModels = header.nModels;
+  *col = header.maxCollisions;
+  
+  Fclose(F);
   return 0;
 }
 
 void FreeLoadedModels(CModel **Models, uint32_t nModels) {
-  for(uint32_t n = 0; n < nModels; n++)
-    FreeCModel(Models[n]);
+  if(!Models) return;
+  
+  for(uint32_t n = 0; n < nModels; n++) {
+    if(Models[n]) {
+      FreeCModel(Models[n]);
+    }
+  }
+  
   Free(Models);
 }
 
 void PrintModelInfo(const char *filename) {
-  FILE *F = fopen(filename, "rb");
-  if(!F) {
-    fprintf(stderr, "Error: Cannot open file %s for reading\n", filename);
+  if(!filename) {
+    fprintf(stderr, "Error: No filename provided\n");
     return;
   }
+  
+  FILE *F = Fopen(filename, "rb");
 
   // Read file header
-  DBFileHeader header;
-  if(fread(&header, sizeof(DBFileHeader), 1, F) != 1) {
+  ModelHeader header;
+  if(fread(&header, sizeof(ModelHeader), 1, F) != 1) {
     fprintf(stderr, "Error reading model file header\n");
-    fclose(F);
+    Fclose(F);
     return;
   }
 
   // Validate header
   if(header.magic != MODEL_MAGIC_NUMBER) {
     fprintf(stderr, "Error: Invalid model file format (wrong magic number)\n");
-    fclose(F);
+    Fclose(F);
     return;
   }
 
@@ -306,7 +328,7 @@ void PrintModelInfo(const char *filename) {
     ModelMeta entryHeader;
     if(fread(&entryHeader, sizeof(ModelMeta), 1, F) != 1) {
       fprintf(stderr, "Error reading model entry header for model %u\n", n);
-      fclose(F);
+      Fclose(F);
       return;
     }
 
@@ -327,22 +349,16 @@ void PrintModelInfo(const char *filename) {
     // Skip model data for display purposes
     if(entryHeader.mode == HASH_TABLE_MODE) {
       // Skip index array
-      fseek(F, HASH_SIZE * sizeof(ENTMAX), SEEK_CUR);
+      Fseeko(F, HASH_SIZE * sizeof(ENTMAX), SEEK_CUR);
 
-      // Skip hash entries
-      #if defined(PREC32B)
-      fseek(F, HASH_SIZE * header.maxCollisions * (sizeof(U32) + sizeof(HCC)), SEEK_CUR);
-      #elif defined(PREC16B)
-      fseek(F, HASH_SIZE * header.maxCollisions * (sizeof(U16) + sizeof(HCC)), SEEK_CUR);
-      #else
-      fseek(F, HASH_SIZE * header.maxCollisions * (sizeof(U8) + sizeof(HCC)), SEEK_CUR);
-      #endif
+      // Skip hash entries (more efficiently)
+      Fseeko(F, HASH_SIZE * header.maxCollisions * sizeof(Entry), SEEK_CUR);
     } else if(entryHeader.mode == ARRAY_MODE) {
       // Skip array
-      fseek(F, (entryHeader.nPModels << 2) * sizeof(ACC), SEEK_CUR);
+      Fseeko(F, (entryHeader.nPModels << 2) * sizeof(ACC), SEEK_CUR);
     }
   }
   fprintf(stderr, "\n");
 
-  fclose(F);
+  Fclose(F);
 }

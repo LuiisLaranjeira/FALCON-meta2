@@ -75,6 +75,20 @@ iPos, uint64_t ePos){
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+#ifdef LOCAL_SIMILARITY
+void AddElementWPWithDb(VT *Vt, double value, uint8_t *nm, uint64_t size, uint64_t
+iPos, uint64_t ePos, uint32_t dbIndex){
+  CopyStringPart(Vt->name, nm);
+  Vt->value = value;
+  Vt->size  = size;
+  Vt->iPos  = iPos;
+  Vt->ePos  = ePos;
+  Vt->dbIndex = dbIndex;
+}
+#endif
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 void UpdateTop(double bits, uint8_t *nm, TOP *T, uint64_t size){
   uint32_t last = T->size - 1;
   if(T->id < last){
@@ -141,6 +155,30 @@ iPos, uint64_t ePos){
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+#ifdef LOCAL_SIMILARITY
+void UpdateTopWPWithDb(double bits, uint8_t *nm, TOP *T, uint64_t size, uint64_t
+iPos, uint64_t ePos, uint32_t dbIndex){
+  uint32_t last = T->size - 1;
+  if(T->id < last){
+    AddElementWPWithDb(&T->V[T->id], bits, nm, size, iPos, ePos, dbIndex);
+    qsort(T->V, T->id+1, sizeof(VT), SortByValue);
+  }
+  else if(T->id == last){
+    AddElementWPWithDb(&T->V[last], bits, nm, size, iPos, ePos, dbIndex);
+    qsort(T->V, T->size, sizeof(VT), SortByValue);
+  }
+  else{ // real NRC = 1.0-bits
+    if(T->V[last].value > bits){
+      AddElementWPWithDb(&T->V[last], bits, nm, size, iPos, ePos, dbIndex);
+      qsort(T->V, T->size, sizeof(VT), SortByValue);
+    }
+  }
+  T->id++;
+}
+#endif
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 void PrintTop(FILE *F, TOP *Top, uint32_t size, char **dbFiles){
   uint32_t n;
   double pttmp;
@@ -168,17 +206,21 @@ void PrintTop(FILE *F, TOP *Top, uint32_t size, char **dbFiles){
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #ifdef LOCAL_SIMILARITY
-void PrintTopWP(FILE *F, TOP *Top, uint32_t size){
+void PrintTopWP(FILE *F, TOP *Top, uint32_t size, char **dbFiles){
   uint32_t n;
   double pttmp;
   if(size > Top->size){
     fprintf(stderr, "  [x] Error: top is larger than size!\n");
     exit(1);
     }
+
+  // Print header with added Database column
+  fprintf(F, "Rank\tSize\tSimilarity\tSequence\tDatabase\n");
+
   for(n = 0 ; n < size ; ++n){
     pttmp = (1.0-Top->V[n].value) * 100.0;
-    fprintf(F, "%u\t%"PRIu64"\t%6.3lf\t%s\t%"PRIu64"\t%"PRIu64"\n", n+1,
-    Top->V[n].size, pttmp, Top->V[n].name, Top->V[n].iPos, Top->V[n].ePos);
+    fprintf(F, "%u\t%"PRIu64"\t%6.3lf\t%s\t%"PRIu64"\t%"PRIu64"\t%s\n", n+1,
+    Top->V[n].size, pttmp, Top->V[n].name, Top->V[n].iPos, Top->V[n].ePos, dbFiles ? dbFiles[Top->V[n].dbIndex] : "unknown");
     if(pttmp == 0.0)
       return;
     }
@@ -187,32 +229,40 @@ void PrintTopWP(FILE *F, TOP *Top, uint32_t size){
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-void PrintTopInfo(TOP *Top, uint32_t size){
+void PrintTopInfo(TOP *Top, uint32_t size, char **dbFiles){
   uint32_t n;
   if(size > Top->size){
     fprintf(stderr, "  [x] Error: top is larger than size!\n");
     exit(1);
     }
   fprintf(stderr, "  [*] Top %u:\n", size);
+
+  // Print header with added Database column
+  fprintf(stderr, "  [*] Rank\tSize\tSimilarity\tSequence\tDatabase\n");
+
   for(n = 0 ; n < size ; ++n)
-    fprintf(stderr, "  [*] %u \t%"PRIu64"\t%7.4lf\t%s\n", n+1, Top->V[n].size,
-    (1.0-Top->V[n].value)*100.0, Top->V[n].name);
+    fprintf(stderr, "  [*] %u \t%"PRIu64"\t%7.4lf\t%s\t%s\n", n+1, Top->V[n].size,
+    (1.0-Top->V[n].value)*100.0, Top->V[n].name, dbFiles ? dbFiles[Top->V[n].dbIndex] : "unknown");
   }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #ifdef LOCAL_SIMILARITY
-void PrintTopInfoWP(TOP *Top, uint32_t size){
+void PrintTopInfoWP(TOP *Top, uint32_t size, char **dbFiles){
   uint32_t n;
   if(size > Top->size){
     fprintf(stderr, "  [x] Error: top is larger than size!\n");
     exit(1);
     }
   fprintf(stderr, "  [*] Top %u:\n", size);
+
+  // Print header with added Database column
+  fprintf(stderr, "  [*] Rank\tSize\tSimilarity\tSequence\tDatabase\n");
+
   for(n = 0 ; n < size ; ++n)
-    fprintf(stderr, "  [*] %u \t%"PRIu64"\t%7.4lf\t%s\t%"PRIu64"\t%"PRIu64"\n", 
+    fprintf(stderr, "  [*] %u \t%"PRIu64"\t%7.4lf\t%s\t%"PRIu64"\t%"PRIu64"\t%s\n",
     n+1, Top->V[n].size, (1.0-Top->V[n].value)*100.0, Top->V[n].name, 
-    Top->V[n].iPos, Top->V[n].ePos);
+    Top->V[n].iPos, Top->V[n].ePos, dbFiles ? dbFiles[Top->V[n].dbIndex] : "unknown");
   }
 #endif
 

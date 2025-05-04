@@ -8,6 +8,7 @@
 #include "mem.h"
 #include "common.h"
 #include "msg.h"
+#include "serialization.h"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -857,10 +858,17 @@ void PrintArgs(Parameters *P, Threads T, char *ref, char *tar, uint32_t top){
     fprintf(stderr, "Output local filename .............. %s\n", P->outLoc);
     }
   #endif
-  fprintf(stderr, "Number of metagenomic files ........ %u\n", P->nFiles);
-  for( n = 0 ; n < P->nFiles ; ++n){
-    fprintf(stderr, "  [+] Metagenomic filename ......... %s\n", P->files[n]);
+  if (P->loadModel) {
+    fprintf(stderr, "Loading model from file ............ %s\n", P->modelFile);
+    if(P->modelInfo){
+      PrintModelInfo(P->modelFile);
     }
+  } else {
+    fprintf(stderr, "Number of metagenomic files ........ %u\n", P->nFiles);
+    for( n = 0 ; n < P->nFiles ; ++n){
+      fprintf(stderr, "  [+] Metagenomic filename ......... %s\n", P->files[n]);
+    }
+  }
   fprintf(stderr, "Number of Database files ........ %u\n", P->nDatabases);
   for( n = 0 ; n < P->nDatabases ; ++n){
     fprintf(stderr, "  [+] DB filename ......... %s\n", P->dbFiles[n]);

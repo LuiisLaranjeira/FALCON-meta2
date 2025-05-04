@@ -52,9 +52,10 @@ typedef struct{
   char     *output;
   char     *base;
   // ===============
-  U8       saveModel;  // Flag to save models after compression
-  U8       loadModel;  // Flag to load models instead of compressing
-  char     *modelFile; // File to save/load model
+  U8       saveModel;   // Flag to save models after compression
+  U8       loadModel;   // Flag to load models instead of compressing
+  U8       modelInfo;   // Flag to show model information
+  char     *modelFile;  // File to save/load model
   // ===============
   U8       useMagnet;        // Flag to enable MAGNET filtering
   char     *magnetFilter;    // FASTA file for MAGNET filtering

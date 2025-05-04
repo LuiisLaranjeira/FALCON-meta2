@@ -575,8 +575,8 @@ void CompressTarget(Threads T, char *dbFile){
             if((PA->nRead-1) % P->nThreads == T.id && PA->nRead>1 && nBase>1){
               #ifdef LOCAL_SIMILARITY
               if(P->local == 1){
-                UpdateTopWP(BPBB(bits, nBase), conName, T.top, nBase, 
-                initNSymbol, nSymbol);
+                UpdateTopWPWithDb(BPBB(bits, nBase), conName, T.top, nBase,
+                initNSymbol, nSymbol, P->currentDBIdx);
                 }
               else
                 UpdateTopWithDB(BPBB(bits, nBase), conName, T.top, nBase, P->currentDBIdx);
@@ -647,8 +647,8 @@ void CompressTarget(Threads T, char *dbFile){
   if(PA->nRead % P->nThreads == T.id){
     #ifdef LOCAL_SIMILARITY
     if(P->local == 1)
-      UpdateTopWP(BPBB(bits, nBase), conName, T.top, nBase,
-      initNSymbol, nSymbol);
+      UpdateTopWPWithDb(BPBB(bits, nBase), conName, T.top, nBase,
+      initNSymbol, nSymbol, P->currentDBIdx);
     else
       UpdateTopWithDB(BPBB(bits, nBase), conName, T.top, nBase, P->currentDBIdx);
     #else
@@ -950,68 +950,91 @@ void CompressAction(Threads *T, char *refName, char *baseName){
   char     filteredFile[MAX_NAME]; // Enough space for filename
   int      useMagnetFilter = 0;
 
-#ifdef KMODELSUSAGE
-  KModels = (KMODEL **) Malloc(P->nModels * sizeof(KMODEL *));
-  for(n = 0 ; n < P->nModels ; ++n)
-    KModels[n] = CreateKModel(T[0].model[n].ctx, T[0].model[n].den,
-    T[0].model[n].ir, REFERENCE, P->col, T[0].model[n].edits,
-    T[0].model[n].eDen);
-  fprintf(stderr, "  [+] Loading metagenomic file ..... ");
-  LoadReferenceWKM(refName);
-  fprintf(stderr, "Done!\n");
-#else
-  Models = (CModel **) Malloc(P->nModels * sizeof(CModel *));
-  for(n = 0 ; n < P->nModels ; ++n)
-    Models[n] = CreateCModel(T[0].model[n].ctx, T[0].model[n].den,
-    T[0].model[n].ir, REFERENCE, P->col, T[0].model[n].edits,
-    T[0].model[n].eDen);
-  fprintf(stderr, "  [+] Loading %u metagenomic file(s):\n", P->nFiles);
-
-  for(n = 0 ; n < P->nFiles ; ++n){
-    if(P->useMagnet) {
-      useMagnetFilter = 1;
-
-      strcpy(filteredFile, "falcon_magnet_filtered.fq");
-
-      // Create a temporary filename for filtered reference different
-      //snprintf(filteredFile, sizeof(filteredFile), "%s.magnet_filtered.fq", P->files[n]);
-
-      fprintf(stderr, "      [+] Applying MAGNET filter to %s ... \n", P->files[n]);
-
-      // Run MAGNET to filter the reference file
-      int result = RunMagnet(
-      P->files[n],
-      P->magnetFilter,
-      P->magnetThreshold,
-      P->magnetLevel,
-      P->magnetInvert,
-      P->magnetVerbose,
-      P->magnetPortion,
-      filteredFile,
-      P->nThreads);
-
-      if(result != 0) {
-        fprintf(stderr, "      [+] MAGNET filtering failed with code %d.\n", result);
-        fprintf(stderr, "      [+] Using original reference file %s instead.\n", P->files[n]);
-        fprintf(stderr, "      [+] Loading original reference %s ... ", P->files[n]);
-        // Load the original reference file
-        LoadReference(P->files[n]);
-        fprintf(stderr, "Done!\n");
-      }
-      else {
-        fprintf(stderr, "      [+] Loading filtered reference %s ... ", filteredFile);
-        // Load the filtered reference file
-        LoadReference(filteredFile);
-        fprintf(stderr, "Done!\n");
-      }
-
-    } else {
-      fprintf(stderr, "      [+] Loading %u ... ", n+1);
-      LoadReference(P->files[n]);
-      fprintf(stderr, "Done! \n");
+  if(P->loadModel) {
+    // Load models from file instead of building them
+    fprintf(stderr, "  [+] Loading models from file %s ... ", P->modelFile);
+    int result = LoadModels(P->modelFile, &Models, &P->nModels, &P->col);
+    if(result != 0) {
+      fprintf(stderr, "Error loading models (code: %d)\n", result);
+      exit(1);
     }
+    fprintf(stderr, "Done!\n");
+  } else {
+    // Build models from reference files as usual
+#ifdef KMODELSUSAGE
+    KModels = (KMODEL **) Malloc(P->nModels * sizeof(KMODEL *));
+    for(n = 0 ; n < P->nModels ; ++n)
+      KModels[n] = CreateKModel(T[0].model[n].ctx, T[0].model[n].den,
+      T[0].model[n].ir, REFERENCE, P->col, T[0].model[n].edits,
+      T[0].model[n].eDen);
+    fprintf(stderr, "  [+] Loading metagenomic file ..... ");
+    LoadReferenceWKM(refName);
+    fprintf(stderr, "Done!\n");
+#else
+    Models = (CModel **) Malloc(P->nModels * sizeof(CModel *));
+    for(n = 0 ; n < P->nModels ; ++n)
+      Models[n] = CreateCModel(T[0].model[n].ctx, T[0].model[n].den,
+      T[0].model[n].ir, REFERENCE, P->col, T[0].model[n].edits,
+      T[0].model[n].eDen);
+    fprintf(stderr, "  [+] Loading %u metagenomic file(s):\n", P->nFiles);
+
+    for(n = 0 ; n < P->nFiles ; ++n){
+      if(P->useMagnet) {
+        useMagnetFilter = 1;
+
+        strcpy(filteredFile, "falcon_magnet_filtered.fq");
+
+        // Create a temporary filename for filtered reference different
+        //snprintf(filteredFile, sizeof(filteredFile), "%s.magnet_filtered.fq", P->files[n]);
+
+        fprintf(stderr, "      [+] Applying MAGNET filter to %s ... \n", P->files[n]);
+
+        // Run MAGNET to filter the reference file
+        int result = RunMagnet(
+        P->files[n],
+        P->magnetFilter,
+        P->magnetThreshold,
+        P->magnetLevel,
+        P->magnetInvert,
+        P->magnetVerbose,
+        P->magnetPortion,
+        filteredFile,
+        P->nThreads);
+
+        if(result != 0) {
+          fprintf(stderr, "      [+] MAGNET filtering failed with code %d.\n", result);
+          fprintf(stderr, "      [+] Using original reference file %s instead.\n", P->files[n]);
+          fprintf(stderr, "      [+] Loading original reference %s ... ", P->files[n]);
+          // Load the original reference file
+          LoadReference(P->files[n]);
+          fprintf(stderr, "Done!\n");
+        }
+        else {
+          fprintf(stderr, "      [+] Loading filtered reference %s ... ", filteredFile);
+          // Load the filtered reference file
+          LoadReference(filteredFile);
+          fprintf(stderr, "Done!\n");
+        }
+
+      } else {
+        fprintf(stderr, "      [+] Loading %u ... ", n+1);
+        LoadReference(P->files[n]);
+        fprintf(stderr, "Done! \n");
+      }
+    }
+    fprintf(stderr, "  [+] Done! Learning phase complete!\n");
   }
-  fprintf(stderr, "  [+] Done! Learning phase complete!\n");
+
+  // Save models if requested
+  if(P->saveModel) {
+    fprintf(stderr, "  [+] Saving models to file %s ... ", P->modelFile);
+    int result = SaveModels(P->modelFile, Models, P->nModels, P->col);
+    if(result != 0) {
+      fprintf(stderr, "Error saving models (code: %d)\n", result);
+      exit(1);
+    }
+    fprintf(stderr, "Done!\n");
+  }
 #endif
 
   fprintf(stderr, "  [+] Compressing database ......... %u file(s):\n", P->nDatabases);
@@ -1028,6 +1051,13 @@ void CompressAction(Threads *T, char *refName, char *baseName){
       pthread_join(t[n+1], NULL);
     fprintf(stderr, "Done!\n");
 
+  }
+
+  if(useMagnetFilter) {
+    // Remove the filtered file if it was created
+    if(remove(filteredFile) != 0) {
+      fprintf(stderr, "Warning: Could not remove temporary file %s\n", filteredFile);
+    }
   }
 }
 
@@ -1218,9 +1248,6 @@ int32_t P_Falcon(char **argv, int argc){
 
   P->verbose  = ArgsState  (DEFAULT_VERBOSE, p, argc, "-v", "--verbose");
   P->force    = ArgsState  (DEFAULT_FORCE,   p, argc, "-F", "--force");
-  P->saveModel  = ArgsState  (0, p, argc, "-S", "--save-model");
-  P->loadModel  = ArgsState  (0, p, argc, "-L", "--load-model" );
-  P->modelFile = ArgsFileGen(p, argc, "-M", "falcon_model", ".fdb");
   #ifdef LOCAL_SIMILARITY
   P->local    = ArgsState  (DEFAULT_LOCAL,   p, argc, "-Z", "--local");
   #endif
@@ -1229,7 +1256,8 @@ int32_t P_Falcon(char **argv, int argc){
   topSize     = ArgsNum    (DEF_TOP,         p, argc, "-t", MIN_TOP, MAX_TOP);
   P->nThreads = ArgsNum    (DEFAULT_THREADS, p, argc, "-n", MIN_THREADS,
   MAX_THREADS);
-
+  
+  // Magnet Integration Flags
   P->useMagnet       = ArgsState  (0, p, argc, "-mg", "--magnet");
   P->magnetVerbose   = ArgsState  (DEFAULT_VERBOSE, p, argc, "-mv", "--magnet-verbose");
   P->magnetFilter    = ArgsString (NULL, p, argc, "-mf", "--magnet-filter");
@@ -1237,6 +1265,23 @@ int32_t P_Falcon(char **argv, int argc){
   P->magnetLevel     = ArgsNum    (36, p, argc, "-ml", MIN_LEV, 44);
   P->magnetInvert    = ArgsState  (0, p, argc, "-mi", "--magnet-invert");
   P->magnetPortion   = ArgsNum    (1, p, argc, "-mp", MIN_SAP, MAX_SAP);
+
+  // Model Saving and Loading Flags
+  P->saveModel  = ArgsState  (0, p, argc, "-S", "--save-model");
+  P->loadModel  = ArgsState  (0, p, argc, "-L", "--load-model");
+  P->modelInfo  = ArgsState  (0, p, argc, "-I", "--model-info");
+  P->modelFile  = ArgsFileGen(p, argc, "-M", "falcon_model", ".fcm"); // FCM = Falcon Compression Model
+
+  if(P->loadModel){
+    if(P->modelFile == NULL || strlen(P->modelFile) == 0){
+      fprintf(stderr,
+        "Error: Model loading enabled but no model file specified.\n"
+              "Please provide a model file with -M option.\n");
+      Free(P);
+      return EXIT_FAILURE;
+    }
+    TestReadFile(P->modelFile);
+  }
 
   if(P->useMagnet) {
     if(!IsMagnetAvailable()) {
@@ -1347,6 +1392,7 @@ int32_t P_Falcon(char **argv, int argc){
     for(n = 0 ; n < T[ref].top->size-1 ; ++n){
       P->top->V[k].value = T[ref].top->V[n].value;
       P->top->V[k].size  = T[ref].top->V[n].size;
+      P->top->V[k].dbIndex = T[ref].top->V[n].dbIndex;
       #ifdef LOCAL_SIMILARITY
       if(P->local == 1){
         P->top->V[k].iPos = T[ref].top->V[n].iPos;
@@ -1365,7 +1411,7 @@ int32_t P_Falcon(char **argv, int argc){
   fprintf(stderr, "  [+] Printing to output file ...... ");
   #ifdef LOCAL_SIMILARITY
   if(P->local == 1)
-    PrintTopWP(OUTPUT, P->top, topSize);
+    PrintTopWP(OUTPUT, P->top, topSize, P->dbFiles);
   else
     PrintTop(OUTPUT, P->top, topSize, P->dbFiles);
   #else
@@ -1407,9 +1453,9 @@ int32_t P_Falcon(char **argv, int argc){
   if(topSize <= 100){
     #ifdef LOCAL_SIMILARITY
     if(P->local == 1)
-      PrintTopInfoWP(P->top, topSize);
+      PrintTopInfoWP(P->top, topSize, P->dbFiles);
     else
-      PrintTopInfo(P->top, topSize);
+      PrintTopInfo(P->top, topSize, P->dbFiles);
     #else
     PrintTopInfo(P->top, topSize);
     #endif
@@ -1438,6 +1484,16 @@ int32_t P_Falcon(char **argv, int argc){
   // Free file names
   if (P->files) {
     Free(P->files);
+  }
+
+  // Free DB file names
+  if (P->dbFiles) {
+    Free(P->dbFiles);
+  }
+
+  // Free model file name
+  if (P->modelFile) {
+    Free(P->modelFile);
   }
 
   RemoveClock(Time);
