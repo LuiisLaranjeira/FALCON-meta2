@@ -1061,6 +1061,93 @@ void CompressAction(Threads *T, char *refName, char *baseName){
   }
 }
 
+void CompressActionTraining(Threads *T, char *refName){
+  uint32_t n;
+  char     filteredFile[MAX_NAME]; // Enough space for filename
+  int      useMagnetFilter = 0;
+
+#ifdef KMODELSUSAGE
+    KModels = (KMODEL **) Malloc(P->nModels * sizeof(KMODEL *));
+    for(n = 0 ; n < P->nModels ; ++n)
+      KModels[n] = CreateKModel(T[0].model[n].ctx, T[0].model[n].den,
+      T[0].model[n].ir, REFERENCE, P->col, T[0].model[n].edits,
+      T[0].model[n].eDen);
+    fprintf(stderr, "  [+] Loading metagenomic file ..... ");
+    LoadReferenceWKM(refName);
+    fprintf(stderr, "Done!\n");
+#else
+    Models = (CModel **) Malloc(P->nModels * sizeof(CModel *));
+    for(n = 0 ; n < P->nModels ; ++n)
+      Models[n] = CreateCModel(T[0].model[n].ctx, T[0].model[n].den,
+      T[0].model[n].ir, REFERENCE, P->col, T[0].model[n].edits,
+      T[0].model[n].eDen);
+    fprintf(stderr, "  [+] Loading %u metagenomic file(s):\n", P->nFiles);
+
+    for(n = 0 ; n < P->nFiles ; ++n){
+      if(P->useMagnet) {
+        useMagnetFilter = 1;
+
+        strcpy(filteredFile, "falcon_magnet_filtered.fq");
+
+        // Create a temporary filename for filtered reference different
+        //snprintf(filteredFile, sizeof(filteredFile), "%s.magnet_filtered.fq", P->files[n]);
+
+        fprintf(stderr, "      [+] Applying MAGNET filter to %s ... \n", P->files[n]);
+
+        // Run MAGNET to filter the reference file
+        int result = RunMagnet(
+        P->files[n],
+        P->magnetFilter,
+        P->magnetThreshold,
+        P->magnetLevel,
+        P->magnetInvert,
+        P->magnetVerbose,
+        P->magnetPortion,
+        filteredFile,
+        P->nThreads);
+
+        if(result != 0) {
+          fprintf(stderr, "      [+] MAGNET filtering failed with code %d.\n", result);
+          fprintf(stderr, "      [+] Using original reference file %s instead.\n", P->files[n]);
+          fprintf(stderr, "      [+] Loading original reference %s ... ", P->files[n]);
+          // Load the original reference file
+          LoadReference(P->files[n]);
+          fprintf(stderr, "Done!\n");
+        }
+        else {
+          fprintf(stderr, "      [+] Loading filtered reference %s ... ", filteredFile);
+          // Load the filtered reference file
+          LoadReference(filteredFile);
+          fprintf(stderr, "Done!\n");
+        }
+
+      } else {
+        fprintf(stderr, "      [+] Loading %u ... ", n+1);
+        LoadReference(P->files[n]);
+        fprintf(stderr, "Done! \n");
+      }
+    }
+    fprintf(stderr, "  [+] Done! Learning phase complete!\n");
+
+    // Save models
+    fprintf(stderr, "  [+] Saving models to file %s ... ", P->modelFile);
+    int result = SaveModels(P->modelFile, Models, P->nModels, P->col);
+    if(result != 0) {
+      fprintf(stderr, "Error saving models (code: %d)\n", result);
+      exit(1);
+    }
+    fprintf(stderr, "Done!\n");
+
+#endif
+
+  if(useMagnetFilter) {
+    // Remove the filtered file if it was created
+    if(remove(filteredFile) != 0) {
+      fprintf(stderr, "Warning: Could not remove temporary file %s\n", filteredFile);
+    }
+  }
+}
+
 void CompressActionInter(Threads *T, uint32_t ref){
   uint32_t n, k;
   pthread_t t[P->nThreads];
@@ -1270,6 +1357,7 @@ int32_t P_Falcon(char **argv, int argc){
   P->saveModel  = ArgsState  (0, p, argc, "-S", "--save-model");
   P->loadModel  = ArgsState  (0, p, argc, "-L", "--load-model");
   P->modelInfo  = ArgsState  (0, p, argc, "-I", "--model-info");
+  P->trainModel = ArgsState  (0, p, argc, "-T", "--train-model");
   P->modelFile  = ArgsFileGen(p, argc, "-M", "falcon_model", ".fcm"); // FCM = Falcon Compression Model
 
   if(P->loadModel){
@@ -1341,50 +1429,138 @@ int32_t P_Falcon(char **argv, int argc){
     }
   #endif
 
-  FILE *OUTPUT = NULL;
-  if(!P->force)
-    FAccessWPerm(P->output);
-  OUTPUT = Fopen(P->output, "w");
-
-  #ifdef LOCAL_SIMILARITY
   FILE *OUTLOC = NULL;
-  if(P->local == 1){
-    if(!P->force)
-      FAccessWPerm(P->outLoc);
-    OUTLOC = Fopen(P->outLoc, "w");
-    }
-  #endif
+  FILE *OUTPUT = NULL;
 
-  if(P->nModels == 0){
-    fprintf(stderr, "Error: at least you need to use a context model!\n");
-    return EXIT_FAILURE;
+  TIME *Time = NULL;
+
+  if(P->trainModel) {
+
+    if(P->nModels == 0){
+      fprintf(stderr, "Error: at least you need to use a context model!\n");
+      return EXIT_FAILURE;
     }
 
-  // READ MODEL PARAMETERS FROM XARGS & ARGS
-  T = (Threads *) Calloc(P->nThreads, sizeof(Threads));
-  for(ref = 0 ; ref < P->nThreads ; ++ref){
-    T[ref].model = (ModelPar *) Calloc(P->nModels, sizeof(ModelPar));
-    T[ref].id    = ref;
-    T[ref].top   = CreateTop(topSize);
-    k = 0;
-    for(n = 1 ; n < argc ; ++n)
-      if(strcmp(argv[n], "-m") == 0)
-        T[ref].model[k++] = ArgsUniqModel(argv[n+1], 0);
-    if(P->level != 0){
-      for(n = 1 ; n < xargc ; ++n)
-        if(strcmp(xargv[n], "-m") == 0)
-          T[ref].model[k++] = ArgsUniqModel(xargv[n+1], 0);
+    // READ MODEL PARAMETERS FROM XARGS & ARGS
+    T = (Threads *) Calloc(P->nThreads, sizeof(Threads));
+    for(ref = 0 ; ref < P->nThreads ; ++ref){
+      T[ref].model = (ModelPar *) Calloc(P->nModels, sizeof(ModelPar));
+      T[ref].id    = ref;
+      k = 0;
+      for(n = 1 ; n < argc ; ++n)
+        if(strcmp(argv[n], "-m") == 0)
+          T[ref].model[k++] = ArgsUniqModel(argv[n+1], 0);
+      if(P->level != 0){
+        for(n = 1 ; n < xargc ; ++n)
+          if(strcmp(xargv[n], "-m") == 0)
+            T[ref].model[k++] = ArgsUniqModel(xargv[n+1], 0);
       }
     }
 
-  P->nDatabases = ReadDBFNames (P, argv[argc-1], 0);
-  P->nFiles     = ReadFNames (P, argv[argc-2], 0);
-  fprintf(stderr, "\n");
-  if(P->verbose) PrintArgs(P, T[0], argv[argc-2], argv[argc-1], topSize);
+    P->nFiles     = ReadFNames (P, argv[argc-1], 0);
+    fprintf(stderr, "\n");
+    if(P->verbose) PrintArgsTrain(P, T[0], argv[argc-1]);
 
-  fprintf(stderr, "==[ PROCESSING ]====================\n");
-  TIME *Time = CreateClock(clock());
-  CompressAction(T, argv[argc-2], P->base);
+    fprintf(stderr, "==[ PROCESSING ]====================\n");
+    Time = CreateClock(clock());
+
+    CompressActionTraining(T, argv[argc-1]);
+
+    fprintf(stderr, "  [+] Freeing compression models ... ");
+    for(n = 0 ; n < P->nModels ; ++n)
+#ifdef KMODELSUSAGE
+      FreeKModel(KModels[n]);
+#else
+    FreeCModel(Models[n]);
+#endif
+#ifdef KMODELSUSAGE
+    Free(KModels);
+#else
+    Free(Models);
+#endif
+    fprintf(stderr, "Done!\n");
+
+    StopTimeNDRM(Time, clock());
+    fprintf(stderr, "\n");
+
+    fprintf(stderr, "==[ STATISTICS ]====================\n");
+    StopCalcAll(Time, clock());
+    fprintf(stderr, "\n");
+
+    if (xargv) {
+      if (xargv[0]) {
+        Free(xargv[0]);  // Free the duplicated string
+      }
+      Free(xargv);         // Free the array itself
+    }
+
+    // Free P resources
+    if (P->output) {
+      Free(P->output);
+    }
+
+    // Free file names
+    if (P->files) {
+      Free(P->files);
+    }
+
+    // Free model file name
+    if (P->modelFile) {
+      Free(P->modelFile);
+    }
+
+    RemoveClock(Time);
+    for(ref = 0 ; ref < P->nThreads ; ++ref){
+      Free(T[ref].model);
+    }
+    Free(T);
+    Free(P);
+
+    return EXIT_SUCCESS;
+  } else {
+    if(!P->force)
+      FAccessWPerm(P->output);
+    OUTPUT = Fopen(P->output, "w");
+
+#ifdef LOCAL_SIMILARITY
+    if(P->local == 1){
+      if(!P->force)
+        FAccessWPerm(P->outLoc);
+      OUTLOC = Fopen(P->outLoc, "w");
+    }
+#endif
+
+    if(P->nModels == 0){
+      fprintf(stderr, "Error: at least you need to use a context model!\n");
+      return EXIT_FAILURE;
+    }
+
+    // READ MODEL PARAMETERS FROM XARGS & ARGS
+    T = (Threads *) Calloc(P->nThreads, sizeof(Threads));
+    for(ref = 0 ; ref < P->nThreads ; ++ref){
+      T[ref].model = (ModelPar *) Calloc(P->nModels, sizeof(ModelPar));
+      T[ref].id    = ref;
+      T[ref].top   = CreateTop(topSize);
+      k = 0;
+      for(n = 1 ; n < argc ; ++n)
+        if(strcmp(argv[n], "-m") == 0)
+          T[ref].model[k++] = ArgsUniqModel(argv[n+1], 0);
+      if(P->level != 0){
+        for(n = 1 ; n < xargc ; ++n)
+          if(strcmp(xargv[n], "-m") == 0)
+            T[ref].model[k++] = ArgsUniqModel(xargv[n+1], 0);
+      }
+    }
+
+    P->nDatabases = ReadDBFNames (P, argv[argc-1], 0);
+    P->nFiles     = ReadFNames (P, argv[argc-2], 0);
+    fprintf(stderr, "\n");
+    if(P->verbose) PrintArgs(P, T[0], argv[argc-2], argv[argc-1], topSize);
+
+    fprintf(stderr, "==[ PROCESSING ]====================\n");
+    Time = CreateClock(clock());
+    CompressAction(T, argv[argc-2], P->base);
+  }
 
   k = 0;
   P->top = CreateTop(topSize * P->nThreads);

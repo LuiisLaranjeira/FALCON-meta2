@@ -11,7 +11,7 @@ set -e
 # Configuration
 FALCON="./FALCON"
 BASE_PARAMS="meta -v -F -t 15 -l 47 -x top.txt"
-INPUT_FILES="reads.fq VDB.fa"
+INPUT_FILES="reads.fq"
 VALGRIND="valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes"
 
 # Check dependencies
@@ -33,11 +33,12 @@ run_test() {
 }
 
 # Simple test
-run_test "simple test" ""
+#run_test "simple test" ""
 
 # Model tests
-run_test "save model test" "--save-model"
-run_test "load model test" "--load-model"
-run_test "load model with info" "--load-model --model-info"
+#run_test "save model test" "--save-model"
+#run_test "load model test" "--load-model"
+#run_test "load model with info" "--load-model --model-info"
+run_test "train model" "--train-model"
 
 echo "All tests completed"

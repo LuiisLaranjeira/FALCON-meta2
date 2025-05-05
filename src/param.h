@@ -54,6 +54,7 @@ typedef struct{
   // ===============
   U8       saveModel;   // Flag to save models after compression
   U8       loadModel;   // Flag to load models instead of compressing
+  U8       trainModel;  // Flag to train models
   U8       modelInfo;   // Flag to show model information
   char     *modelFile;  // File to save/load model
   // ===============
