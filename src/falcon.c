@@ -191,6 +191,136 @@ void LocalComplexity(Threads T, TOP *Top, uint64_t topSize, FILE *OUT){
   }
 #endif
 
+#ifdef LOCAL_SIMILARITY
+void LocalComplexityVariousDBs(Threads T, TOP *Top, uint64_t topSize, char **baseFiles, U8 fileCount, FILE *OUT){
+  double      bits = 0, instant = 0;
+  uint64_t    nBase = 0, entry;
+  uint32_t    n, totModels, cModel;
+  PARSER      *PA = CreateParser();
+  CBUF        *symBuf = CreateCBuffer(BUFFER_SIZE, BGUARD);
+  uint8_t     *readBuf = (uint8_t *) Calloc(BUFFER_SIZE, sizeof(uint8_t));
+  uint8_t     *pos;
+  PModel      **pModel, *MX;
+  CModel      **Shadow; // SHADOWS FOR SUPPORTING MODELS WITH THREADING
+  FloatPModel *PT;
+  CMWeight    *CMW;
+  int         sym;
+
+  // Calculate total models including edits
+  totModels = P->nModels; // EXTRA MODELS DERIVED FROM EDITS
+  for(n = 0 ; n < P->nModels ; ++n)
+    if(T.model[n].edits != 0)
+      totModels += 1;
+
+  // Initialize shadow models
+  Shadow      = (CModel **) Calloc(P->nModels, sizeof(CModel *));
+  for(n = 0 ; n < P->nModels ; ++n)
+    Shadow[n] = CreateShadowModel(Models[n]);
+
+  // Initialize prediction models and weights
+  pModel      = (PModel **) Calloc(totModels, sizeof(PModel *));
+  for(n = 0 ; n < totModels ; ++n)
+    pModel[n] = CreatePModel(ALPHABET_SIZE);
+  MX          = CreatePModel(ALPHABET_SIZE);
+  PT          = CreateFloatPModel(ALPHABET_SIZE);
+  CMW         = CreateWeightModel(totModels);
+
+  // Loop over each input file
+  for (uint32_t fIdx = 0; fIdx < fileCount; ++fIdx) {
+    char *currentDb = baseFiles[fIdx];
+    FILE        *Reader = Fopen(currentDb, "r");
+    nBase = bits = 0;
+
+    // Process each TOP entry
+    for(entry = 0 ; entry < topSize ; ++entry){
+      if(Top->V[entry].size > 1){
+        fprintf(stderr, "      [+] Running profile: %-5"PRIu64" ... ", entry + 1);
+
+        // PRINT HEADER COMPLEXITY VALUE
+        fprintf(OUT, "#\t%.5lf\t%"PRIu64"\t%s\n", (1.0-Top->V[entry].value)*100.0,
+        Top->V[entry].size, Top->V[entry].name);
+
+        // MOVE POINTER FORWARD
+        Fseeko(Reader, (off_t) Top->V[entry].iPos-1, SEEK_SET);
+
+        while((sym = fgetc(Reader)) != EOF){
+
+          if(sym == '>'){ // FOUND HEADER & SKIP
+            while((sym = fgetc(Reader)) != '\n' && sym != EOF)
+              ; // DO NOTHING
+
+            if(sym == EOF)
+              break;     // END OF FILE: QUIT
+          }
+
+          if(nBase >= Top->V[entry].size) // IT PROCESSED ALL READ BASES: QUIT!
+            break;
+
+          if(sym == '\n') continue;  // SKIP '\n' IN FASTA
+
+          if((sym = DNASymToNum(sym)) == 4){
+            fprintf(OUT, "%c", PackByte(2.0, sym)); // PRINT COMPLEXITY & SYM IN1
+            continue; // IT IGNORES EXTRA SYMBOLS
+          }
+
+          symBuf->buf[symBuf->idx] = sym;
+          memset((void *)PT->freqs, 0, ALPHABET_SIZE * sizeof(double));
+          n = 0;
+          pos = &symBuf->buf[symBuf->idx-1];
+          for(cModel = 0 ; cModel < P->nModels ; ++cModel){
+            CModel *CM = Shadow[cModel];
+            GetPModelIdx(pos, CM);
+            ComputePModel(Models[cModel], pModel[n], CM->pModelIdx, CM->alphaDen);
+            ComputeWeightedFreqs(CMW->weight[n], pModel[n], PT);
+            if(CM->edits != 0){
+              ++n;
+              CM->SUBS.seq->buf[CM->SUBS.seq->idx] = sym;
+              CM->SUBS.idx = GetPModelIdxCorr(CM->SUBS.seq->buf+CM->SUBS.seq->idx
+              -1, CM, CM->SUBS.idx);
+              ComputePModel(Models[cModel], pModel[n], CM->SUBS.idx, CM->SUBS.eDen);
+              ComputeWeightedFreqs(CMW->weight[n], pModel[n], PT);
+            }
+            ++n;
+          }
+
+          ComputeMXProbs(PT, MX);
+          instant = PModelSymbolLog(MX, sym);
+          bits += instant;
+          fprintf(OUT, "%c", PackByte(instant, sym)); // PRINT COMPLEX & SYM IN1
+          ++nBase;
+          CalcDecayment(CMW, pModel, sym, P->gamma);
+          RenormalizeWeights(CMW);
+          CorrectXModels(Shadow, pModel, sym, P->nModels);
+          UpdateCBuffer(symBuf);
+        }
+
+        if(entry < topSize - 1){ // RESET MODELS & PROPERTIES
+          ResetModelsAndParam(symBuf, Shadow, CMW);
+          nBase = bits = 0;
+        }
+
+        fprintf(OUT, "\n");
+        fprintf(stderr, "Done!\n");
+      }
+    }
+    fclose(Reader);
+  }
+
+  DeleteWeightModel(CMW);
+  for(n = 0 ; n < totModels ; ++n)
+    RemovePModel(pModel[n]);
+  Free(pModel);
+  RemovePModel(MX);
+  RemoveFPModel(PT);
+  for(n = 0 ; n < P->nModels ; ++n)
+    FreeShadow(Shadow[n]);
+  Free(Shadow);
+  Free(readBuf);
+  RemoveCBuffer(symBuf);
+  RemoveParser(PA);
+  }
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // - - - - - - - - - P E R E G R I N E   C O M P R E S S I O N - - - - - - - -
@@ -1517,50 +1647,51 @@ int32_t P_Falcon(char **argv, int argc){
     Free(P);
 
     return EXIT_SUCCESS;
-  } else {
-    if(!P->force)
-      FAccessWPerm(P->output);
-    OUTPUT = Fopen(P->output, "w");
+  }
+
+  if(!P->force)
+    FAccessWPerm(P->output);
+  OUTPUT = Fopen(P->output, "w");
 
 #ifdef LOCAL_SIMILARITY
-    if(P->local == 1){
-      if(!P->force)
-        FAccessWPerm(P->outLoc);
-      OUTLOC = Fopen(P->outLoc, "w");
-    }
+  if(P->local == 1){
+    if(!P->force)
+      FAccessWPerm(P->outLoc);
+    OUTLOC = Fopen(P->outLoc, "w");
+  }
 #endif
 
-    if(P->nModels == 0){
-      fprintf(stderr, "Error: at least you need to use a context model!\n");
-      return EXIT_FAILURE;
-    }
-
-    // READ MODEL PARAMETERS FROM XARGS & ARGS
-    T = (Threads *) Calloc(P->nThreads, sizeof(Threads));
-    for(ref = 0 ; ref < P->nThreads ; ++ref){
-      T[ref].model = (ModelPar *) Calloc(P->nModels, sizeof(ModelPar));
-      T[ref].id    = ref;
-      T[ref].top   = CreateTop(topSize);
-      k = 0;
-      for(n = 1 ; n < argc ; ++n)
-        if(strcmp(argv[n], "-m") == 0)
-          T[ref].model[k++] = ArgsUniqModel(argv[n+1], 0);
-      if(P->level != 0){
-        for(n = 1 ; n < xargc ; ++n)
-          if(strcmp(xargv[n], "-m") == 0)
-            T[ref].model[k++] = ArgsUniqModel(xargv[n+1], 0);
-      }
-    }
-
-    P->nDatabases = ReadDBFNames (P, argv[argc-1], 0);
-    P->nFiles     = ReadFNames (P, argv[argc-2], 0);
-    fprintf(stderr, "\n");
-    if(P->verbose) PrintArgs(P, T[0], argv[argc-2], argv[argc-1], topSize);
-
-    fprintf(stderr, "==[ PROCESSING ]====================\n");
-    Time = CreateClock(clock());
-    CompressAction(T, argv[argc-2], P->base);
+  if(P->nModels == 0){
+    fprintf(stderr, "Error: at least you need to use a context model!\n");
+    return EXIT_FAILURE;
   }
+
+  // READ MODEL PARAMETERS FROM XARGS & ARGS
+  T = (Threads *) Calloc(P->nThreads, sizeof(Threads));
+  for(ref = 0 ; ref < P->nThreads ; ++ref){
+    T[ref].model = (ModelPar *) Calloc(P->nModels, sizeof(ModelPar));
+    T[ref].id    = ref;
+    T[ref].top   = CreateTop(topSize);
+    k = 0;
+    for(n = 1 ; n < argc ; ++n)
+      if(strcmp(argv[n], "-m") == 0)
+        T[ref].model[k++] = ArgsUniqModel(argv[n+1], 0);
+    if(P->level != 0){
+      for(n = 1 ; n < xargc ; ++n)
+        if(strcmp(xargv[n], "-m") == 0)
+          T[ref].model[k++] = ArgsUniqModel(xargv[n+1], 0);
+    }
+  }
+
+  P->base = argv[argc-1];
+  P->nDatabases = ReadDBFNames (P, argv[argc-1], 0);
+  P->nFiles     = ReadFNames (P, argv[argc-2], 0);
+  fprintf(stderr, "\n");
+  if(P->verbose) PrintArgs(P, T[0], argv[argc-2], argv[argc-1], topSize);
+
+  fprintf(stderr, "==[ PROCESSING ]====================\n");
+  Time = CreateClock(clock());
+  CompressAction(T, argv[argc-2], P->base);
 
   k = 0;
   P->top = CreateTop(topSize * P->nThreads);
@@ -1602,7 +1733,8 @@ int32_t P_Falcon(char **argv, int argc){
     #ifdef KMODELSUSAGE
     LocalComplexityWKM(T[0], P->top, topSize, OUTLOC);
     #else
-    LocalComplexity(T[0], P->top, topSize, OUTLOC);
+    LocalComplexityVariousDBs(T[0], P->top, topSize, P->dbFiles, P->nDatabases, OUTLOC);
+    fprintf(stderr, "Done!\n");
     #endif
     fclose(OUTLOC);
     }

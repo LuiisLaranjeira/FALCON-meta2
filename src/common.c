@@ -7,6 +7,9 @@
 #include "defs.h"
 #include "mem.h"
 #include "common.h"
+
+#include <errno.h>
+
 #include "msg.h"
 #include "serialization.h"
 
@@ -1094,4 +1097,27 @@ int ends_with(const char *str, const char *suffix) {
     if (lensuffix > lenstr) return 0;
     
     return (strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0);
+}
+
+// Helper: decompress .gz file to a temporary file, returning its path
+// Caller must free() the returned string and unlink() after use
+char* decompressToTemp(const char *compressedPath) {
+  char template[] = "/tmp/magnetXXXXXX";
+  int fd = mkstemp(template);
+  if (fd < 0) {
+    fprintf(stderr, "Error: mkstemp failed: %s\n", strerror(errno));
+    return NULL;
+  }
+  close(fd);
+
+  // Build command
+  char cmd[1024];
+  snprintf(cmd, sizeof(cmd), "gzip -dc '%s' > '%s'", compressedPath, template);
+  int ret = system(cmd);
+  if (ret != 0) {
+    fprintf(stderr, "Error: failed to decompress %s to %s (code %d)\n", compressedPath, template, ret);
+    unlink(template);
+    return NULL;
+  }
+  return strdup(template);
 }

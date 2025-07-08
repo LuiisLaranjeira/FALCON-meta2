@@ -87,6 +87,21 @@ char        *ArgsFileGen     (char *[], uint32_t, char *, char *, char *);
  */
 int         ends_with        (const char *str, const char *suffix);
 
+/**
+ * @brief Decompresses a .gz file to a secure temporary file
+ *
+ * Creates a unique file in /tmp using mkstemp(), then decompresses the given
+ * .gz file using `gzip -dc` into that temp file. The path is returned to the caller.
+ *
+ * @note The caller is responsible for freeing the returned string using free()
+ *       and removing the temporary file using unlink() when done.
+ *
+ * @param compressedPath Path to a .gz compressed input file
+ * @return char* Path to the decompressed temporary file, or NULL on failure
+ */
+char*       decompressToTemp (const char *compressedPath);
+
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 #endif

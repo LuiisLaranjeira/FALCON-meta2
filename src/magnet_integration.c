@@ -3,6 +3,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include "common.h"
 
 // Max command length for MAGNET
 #define MAX_CMD_LEN 4096
@@ -121,6 +124,7 @@ int RunMagnet(const char *inputReads, const char *filterReference,
     char command[MAX_CMD_LEN];
     char threadStr[16] = ""; // Buffer for thread parameter
     int result;
+    char *readsPath = NULL, *refPath = NULL;
 
     // Check if MAGNET is available
     if (!IsMagnetAvailable()) {
@@ -142,10 +146,26 @@ int RunMagnet(const char *inputReads, const char *filterReference,
         return -2;
     }
 
+    // Prepare reads file
+    if (ends_with(inputReads, ".gz"))
+        readsPath = decompressToTemp(inputReads);
+    else
+        readsPath = strdup(inputReads);
+
     if (filterReference == NULL || access(filterReference, F_OK) != 0) {
         fprintf(stderr, "Error: Filter reference file not found: %s\n", 
                 filterReference ? filterReference : "NULL");
         return -3;
+    }
+
+    if (ends_with(filterReference, ".gz")) {
+        refPath = decompressToTemp(filterReference);
+        if (!refPath) {
+            free(readsPath);
+            return -3;
+        }
+    } else {
+        refPath = strdup(filterReference);
     }
 
     // Prepare thread parameter if needed
@@ -167,8 +187,8 @@ int RunMagnet(const char *inputReads, const char *filterReference,
         portion,
         threadStr,
         outputFile,
-        filterReference,
-        inputReads);
+        refPath,
+        readsPath);
 
     // Show command in verbose mode
     if (verbose) {
@@ -183,6 +203,10 @@ int RunMagnet(const char *inputReads, const char *filterReference,
         fprintf(stderr, "Error: MAGNET filtering failed with code %d.\n", result);
         return -4;
     }
+
+    // Cleanup
+    if (readsPath) unlink(readsPath), free(readsPath);
+    if (refPath)   unlink(refPath),   free(refPath);
 
    // Verify that output file was created
     if (access(outputFile, F_OK) != 0) {
