@@ -31,3 +31,41 @@ FILE* CFopen(const char* filename, const char* mode) {
     // For uncompressed files, use regular Fopen
     return Fopen(filename, mode);
 }
+
+int CFclose(const char *filename, FILE *f)
+{
+    if (!f) return 0;
+    /* We only popen() for .gz reads in CFopen; close with pclose in that case. */
+    if (ends_with(filename, ".gz")) return pclose(f);
+    return fclose(f);
+}
+
+int ConcatWithCFopen(char *const *files, uint32_t nFiles, const char *outPath){
+    FILE *OUT = Fopen(outPath, "wb");
+    uint32_t i;
+    size_t   k;
+    uint8_t  buffer[ BUFFER_SIZE ];
+
+    for(i = 0; i < nFiles; ++i){
+        FILE *IN = CFopen(files[i], "r");
+        fprintf(stderr, "      [+] Concatenating %u/%u: %s ... ", i + 1, nFiles, files[i]);
+        while((k = fread(buffer, 1, sizeof buffer, IN)) > 0){
+            if(fwrite(buffer, 1, k, OUT) != k){
+                fprintf(stderr, "  [x] Error: fwrite failed while concatenating %s\n", files[i]);
+                CFclose(files[i], IN);
+                Fclose(OUT);
+                return EXIT_FAILURE;
+            }
+        }
+        if(ferror(IN)){
+            fprintf(stderr, "  [x] Error: fread failed while reading %s\n", files[i]);
+            CFclose(files[i], IN);
+            Fclose(OUT);
+            return EXIT_FAILURE;
+        }
+        CFclose(files[i], IN);
+        fprintf(stderr, "Done!\n");
+    }
+    Fclose(OUT);
+    return EXIT_SUCCESS;
+}

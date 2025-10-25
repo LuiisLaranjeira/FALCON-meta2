@@ -19,6 +19,7 @@ SymValue;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+void        Fdelete          (char *);
 void        Fclose           (FILE *);
 void        Fseeko           (FILE *, off_t, int32_t);
 uint64_t    Ftello           (FILE *);
@@ -66,7 +67,8 @@ void        CalcProgress     (uint64_t , uint64_t);
 uint32_t    ReadFNames       (Parameters *, char *, int);
 uint32_t    ReadDBFNames     (Parameters *, char *, int);
 void        PrintArgs        (Parameters *, Threads, char *, char *, uint32_t);
-void        PrintArgsTrain        (Parameters *, Threads, char *);
+void        PrintArgsMagnet  (Parameters *, Threads, char *, char *);
+void        PrintArgsTrain   (Parameters *, Threads, char *);
 void        PrintArgsFilter  (EYEPARAM *);
 void        PrintArgsInter   (Parameters *, Threads);
 void        PrintArgsEye     (EYEPARAM *);

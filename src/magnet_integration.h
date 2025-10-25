@@ -5,19 +5,6 @@
 #include "defs.h"
 #include <stdio.h>
 
-
-/**
- * Check if MAGNET is available
- * 
- * @return 1 if MAGNET is available, 0 otherwise
- */
-int IsMagnetAvailable(void);
-
-/**
- * Print MAGNET version information to stderr
- */
-void PrintMagnetVersion(void);
-
 /**
  * Run MAGNET and get its output as a FILE* stream
  * 

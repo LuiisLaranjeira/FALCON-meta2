@@ -13,6 +13,7 @@ void PrintMenuInter       (void);
 void PrintMenuVisual      (void);
 void PrintMenuInterVisual (void);
 void PrintVersion         (void);
+void PrintMagnetVersion   (void);
 
 #endif
 

@@ -15,6 +15,16 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+void Fdelete(char *name){
+  int ret = remove(name);
+  if(ret == 0)
+    ; //printf("File %s deleted successfully!\n", name);
+  else
+    printf("Error: unable to delete the file!\n");
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 void Fclose(FILE *F){
   if(F == NULL){
     fprintf(stderr, "Error (Fclose): NULL file pointer.\n");
@@ -878,6 +888,42 @@ void PrintArgs(Parameters *P, Threads T, char *ref, char *tar, uint32_t top){
   }
   fprintf(stderr, "\n");
   }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+void PrintArgsMagnet(Parameters *P, Threads T, char *ref, char *tar){
+  uint32_t n;
+
+  fprintf(stderr, "==[ CONFIGURATION ]=================\n");
+  fprintf(stderr, "Verbose mode ....................... %s\n", P->verbose == 0
+  ? "no" : "yes");
+  fprintf(stderr, "Force mode ......................... %s\n", P->force == 0 ?
+  "no" : "yes");
+  fprintf(stderr, "Compression level .................. %u\n", P->level);
+  fprintf(stderr, "Sub-sampling ....................... %u\n", P->sample);
+  fprintf(stderr, "Number of threads .................. %u\n", P->nThreads);
+  for(n = 0 ; n < P->nModels ; ++n){
+    fprintf(stderr, "Reference model %u:\n", n+1);
+    fprintf(stderr, "  [+] Context order ................ %u\n",
+    T.model[n].ctx);
+    fprintf(stderr, "  [+] Alpha denominator ............ %u\n",
+    T.model[n].den);
+    fprintf(stderr, "  [+] Inverted repeats ............. %s\n",
+    T.model[n].ir == 0 ? "no" : "yes");
+    fprintf(stderr, "  [+] Allowable substitutions ...... %u\n",
+    T.model[n].edits);
+    if(T.model[n].edits != 0)
+      fprintf(stderr, "  [+] Substitutions alpha den ...... %u\n",
+      T.model[n].eDen);
+  }
+  fprintf(stderr, "Gamma .............................. %.2lf\n", P->gamma);
+  fprintf(stderr, "Maximum Collisions ................. %u\n", P->col);
+  fprintf(stderr, "Threshold of acceptance ............ %.2lf\n", P->threshold);
+  fprintf(stderr, "Output filtered filename ........... %s\n", P->output);
+  fprintf(stderr, "Reference filename ................. %s\n", ref);
+  fprintf(stderr, "Raw reads (FASTQ) filename ......... %s\n", tar);
+  fprintf(stderr, "\n");
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

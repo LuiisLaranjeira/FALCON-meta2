@@ -1074,10 +1074,11 @@ void LoadReferenceWKM(char *refName){
 //////////////////////////////////////////////////////////////////////////////
 // - - - - - - - - - - - C O M P R E S S O R   M A I N - - - - - - - - - - - -
 
-void CompressAction(Threads *T, char *refName, char *baseName){
+void CompressAction(Threads *T, char *refName, char *baseName) {
   pthread_t t[P->nThreads];
   uint32_t n, dbIdx;
   char     filteredFile[MAX_NAME]; // Enough space for filename
+  char     concatFile[MAX_NAME]; // Enough space for filename
   int      useMagnetFilter = 0;
 
   if(P->loadModel) {
@@ -1108,20 +1109,22 @@ void CompressAction(Threads *T, char *refName, char *baseName){
       T[0].model[n].eDen);
     fprintf(stderr, "  [+] Loading %u metagenomic file(s):\n", P->nFiles);
 
-    for(n = 0 ; n < P->nFiles ; ++n){
-      if(P->useMagnet) {
-        useMagnetFilter = 1;
+    if(P->useMagnet) {
+      useMagnetFilter = 1;
+      strcpy(filteredFile, "falcon_magnet_filtered.fq");
 
-        strcpy(filteredFile, "falcon_magnet_filtered.fq");
+      // Create a temporary filename for filtered reference different
+      //snprintf(filteredFile, sizeof(filteredFile), "%s.magnet_filtered.fq", P->files[n]);
 
-        // Create a temporary filename for filtered reference different
-        //snprintf(filteredFile, sizeof(filteredFile), "%s.magnet_filtered.fq", P->files[n]);
+      fprintf(stderr, "      [+] Applying MAGNET filter to %u metagenomic file(s):\n", P->nFiles);
 
-        fprintf(stderr, "      [+] Applying MAGNET filter to %s ... \n", P->files[n]);
+      if(P->nFiles > 1) {
+        strcpy(concatFile, "falcon_concatenated.fq");
+        ConcatWithCFopen(P->files, P->nFiles, concatFile);
 
         // Run MAGNET to filter the reference file
         int result = RunMagnet(
-        P->files[n],
+        concatFile,
         P->magnetFilter,
         P->magnetThreshold,
         P->magnetLevel,
@@ -1133,10 +1136,39 @@ void CompressAction(Threads *T, char *refName, char *baseName){
 
         if(result != 0) {
           fprintf(stderr, "      [+] MAGNET filtering failed with code %d.\n", result);
-          fprintf(stderr, "      [+] Using original reference file %s instead.\n", P->files[n]);
-          fprintf(stderr, "      [+] Loading original reference %s ... ", P->files[n]);
+          for(n = 0 ; n < P->nFiles ; ++n){
+            fprintf(stderr, "      [+] Loading original reference %s ... ", P->files[n]);
+            fprintf(stderr, "      [+] Loading %u ... ", n+1);
+            LoadReference(P->files[n]);
+            fprintf(stderr, "Done! \n");
+          }
+        }
+        else {
+          fprintf(stderr, "      [+] Loading filtered reference %s ... ", filteredFile);
+          // Load the filtered reference file
+          LoadReference(filteredFile);
+          fprintf(stderr, "Done!\n");
+          useMagnetFilter = 1;
+        }
+      } else {
+        // Run MAGNET to filter the reference file
+        int result = RunMagnet(
+        P->files[0],
+        P->magnetFilter,
+        P->magnetThreshold,
+        P->magnetLevel,
+        P->magnetInvert,
+        P->magnetVerbose,
+        P->magnetPortion,
+        filteredFile,
+        P->nThreads);
+
+        if(result != 0) {
+          fprintf(stderr, "      [+] MAGNET filtering failed with code %d.\n", result);
+          fprintf(stderr, "      [+] Using original reference file %s instead.\n", P->files[0]);
+          fprintf(stderr, "      [+] Loading original reference %s ... ", P->files[0]);
           // Load the original reference file
-          LoadReference(P->files[n]);
+          LoadReference(P->files[0]);
           fprintf(stderr, "Done!\n");
         }
         else {
@@ -1145,48 +1177,49 @@ void CompressAction(Threads *T, char *refName, char *baseName){
           LoadReference(filteredFile);
           fprintf(stderr, "Done!\n");
         }
-
-      } else {
+      }
+    } else {
+      for(n = 0 ; n < P->nFiles ; ++n){
         fprintf(stderr, "      [+] Loading %u ... ", n+1);
         LoadReference(P->files[n]);
         fprintf(stderr, "Done! \n");
       }
     }
     fprintf(stderr, "  [+] Done! Learning phase complete!\n");
-  }
 
-  // Save models if requested
-  if(P->saveModel) {
-    fprintf(stderr, "  [+] Saving models to file %s ... ", P->modelFile);
-    int result = SaveModels(P->modelFile, Models, P->nModels, P->col);
-    if(result != 0) {
-      fprintf(stderr, "Error saving models (code: %d)\n", result);
-      exit(1);
+    // Save models if requested
+    if(P->saveModel) {
+      fprintf(stderr, "  [+] Saving models to file %s ... ", P->modelFile);
+      int result = SaveModels(P->modelFile, Models, P->nModels, P->col);
+      if(result != 0) {
+        fprintf(stderr, "Error saving models (code: %d)\n", result);
+        exit(1);
+      }
+      fprintf(stderr, "Done!\n");
     }
-    fprintf(stderr, "Done!\n");
-  }
 #endif
 
-  fprintf(stderr, "  [+] Compressing database ......... %u file(s):\n", P->nDatabases);
+    fprintf(stderr, "  [+] Compressing database ......... %u file(s):\n", P->nDatabases);
 
-  for(dbIdx = 0 ; dbIdx < P->nDatabases ; ++dbIdx){
-    fprintf(stderr, "      [+] Loading %u ... ", dbIdx+1);
+    for(dbIdx = 0 ; dbIdx < P->nDatabases ; ++dbIdx){
+      fprintf(stderr, "      [+] Loading %u ... ", dbIdx+1);
 
-    // Set current database for threads
-    P->currentDBIdx = dbIdx;
+      // Set current database for threads
+      P->currentDBIdx = dbIdx;
 
-    for(n = 0 ; n < P->nThreads ; ++n)
-      pthread_create(&(t[n+1]), NULL, CompressThread, (void *) &(T[n]));
-    for(n = 0 ; n < P->nThreads ; ++n) // DO NOT JOIN FORS!
-      pthread_join(t[n+1], NULL);
-    fprintf(stderr, "Done!\n");
+      for(n = 0 ; n < P->nThreads ; ++n)
+        pthread_create(&(t[n+1]), NULL, CompressThread, (void *) &(T[n]));
+      for(n = 0 ; n < P->nThreads ; ++n) // DO NOT JOIN FORS!
+        pthread_join(t[n+1], NULL);
+      fprintf(stderr, "Done!\n");
 
-  }
+    }
 
-  if(useMagnetFilter) {
-    // Remove the filtered file if it was created
-    if(remove(filteredFile) != 0) {
-      fprintf(stderr, "Warning: Could not remove temporary file %s\n", filteredFile);
+    if(useMagnetFilter) {
+      // Remove the filtered file if it was created
+      if(remove(filteredFile) != 0) {
+        fprintf(stderr, "Warning: Could not remove temporary file %s\n", filteredFile);
+      }
     }
   }
 }
@@ -1194,6 +1227,7 @@ void CompressAction(Threads *T, char *refName, char *baseName){
 void CompressActionTraining(Threads *T, char *refName){
   uint32_t n;
   char     filteredFile[MAX_NAME]; // Enough space for filename
+  char     concatFile[MAX_NAME]; // Enough space for filename
   int      useMagnetFilter = 0;
 
 #ifdef KMODELSUSAGE
@@ -1213,20 +1247,22 @@ void CompressActionTraining(Threads *T, char *refName){
       T[0].model[n].eDen);
     fprintf(stderr, "  [+] Loading %u metagenomic file(s):\n", P->nFiles);
 
-    for(n = 0 ; n < P->nFiles ; ++n){
-      if(P->useMagnet) {
-        useMagnetFilter = 1;
+        if(P->useMagnet) {
+      useMagnetFilter = 1;
+      strcpy(filteredFile, "falcon_magnet_filtered.fq");
 
-        strcpy(filteredFile, "falcon_magnet_filtered.fq");
+      // Create a temporary filename for filtered reference different
+      //snprintf(filteredFile, sizeof(filteredFile), "%s.magnet_filtered.fq", P->files[n]);
 
-        // Create a temporary filename for filtered reference different
-        //snprintf(filteredFile, sizeof(filteredFile), "%s.magnet_filtered.fq", P->files[n]);
+      fprintf(stderr, "      [+] Applying MAGNET filter to %u metagenomic file(s):\n", P->nFiles);
 
-        fprintf(stderr, "      [+] Applying MAGNET filter to %s ... \n", P->files[n]);
+      if(P->nFiles > 1) {
+        strcpy(concatFile, "falcon_concatenated.fq");
+        ConcatWithCFopen(P->files, P->nFiles, concatFile);
 
         // Run MAGNET to filter the reference file
         int result = RunMagnet(
-        P->files[n],
+        concatFile,
         P->magnetFilter,
         P->magnetThreshold,
         P->magnetLevel,
@@ -1238,10 +1274,39 @@ void CompressActionTraining(Threads *T, char *refName){
 
         if(result != 0) {
           fprintf(stderr, "      [+] MAGNET filtering failed with code %d.\n", result);
-          fprintf(stderr, "      [+] Using original reference file %s instead.\n", P->files[n]);
-          fprintf(stderr, "      [+] Loading original reference %s ... ", P->files[n]);
+          for(n = 0 ; n < P->nFiles ; ++n){
+            fprintf(stderr, "      [+] Loading original reference %s ... ", P->files[n]);
+            fprintf(stderr, "      [+] Loading %u ... ", n+1);
+            LoadReference(P->files[n]);
+            fprintf(stderr, "Done! \n");
+          }
+        }
+        else {
+          fprintf(stderr, "      [+] Loading filtered reference %s ... ", filteredFile);
+          // Load the filtered reference file
+          LoadReference(filteredFile);
+          fprintf(stderr, "Done!\n");
+          useMagnetFilter = 1;
+        }
+      } else {
+        // Run MAGNET to filter the reference file
+        int result = RunMagnet(
+        P->files[0],
+        P->magnetFilter,
+        P->magnetThreshold,
+        P->magnetLevel,
+        P->magnetInvert,
+        P->magnetVerbose,
+        P->magnetPortion,
+        filteredFile,
+        P->nThreads);
+
+        if(result != 0) {
+          fprintf(stderr, "      [+] MAGNET filtering failed with code %d.\n", result);
+          fprintf(stderr, "      [+] Using original reference file %s instead.\n", P->files[0]);
+          fprintf(stderr, "      [+] Loading original reference %s ... ", P->files[0]);
           // Load the original reference file
-          LoadReference(P->files[n]);
+          LoadReference(P->files[0]);
           fprintf(stderr, "Done!\n");
         }
         else {
@@ -1250,8 +1315,9 @@ void CompressActionTraining(Threads *T, char *refName){
           LoadReference(filteredFile);
           fprintf(stderr, "Done!\n");
         }
-
-      } else {
+      }
+    } else {
+      for(n = 0 ; n < P->nFiles ; ++n){
         fprintf(stderr, "      [+] Loading %u ... ", n+1);
         LoadReference(P->files[n]);
         fprintf(stderr, "Done! \n");
@@ -1496,24 +1562,18 @@ int32_t P_Falcon(char **argv, int argc){
         "Error: Model loading enabled but no model file specified.\n"
               "Please provide a model file with -M option.\n");
       Free(P);
-      return EXIT_FAILURE;
+      exit(1);
     }
     TestReadFile(P->modelFile);
   }
 
   if(P->useMagnet) {
-    if(!IsMagnetAvailable()) {
-      fprintf(stderr, "Error: MAGNET filtering requested but MAGNET not found.\n");
-      Free(P);
-      return EXIT_FAILURE;
-    }
-
     if(P->magnetFilter == NULL || strlen(P->magnetFilter) == 0){
       fprintf(stderr,
         "Error: MAGNET filtering enabled but no filter file specified.\n"
               "Please provide a FASTA filter file with -mf option.\n");
       Free(P);
-      return EXIT_FAILURE;
+      exit(1);
     }
 
     TestReadFile(P->magnetFilter);
@@ -1568,7 +1628,7 @@ int32_t P_Falcon(char **argv, int argc){
 
     if(P->nModels == 0){
       fprintf(stderr, "Error: at least you need to use a context model!\n");
-      return EXIT_FAILURE;
+      exit(1);
     }
 
     // READ MODEL PARAMETERS FROM XARGS & ARGS
@@ -1663,7 +1723,7 @@ int32_t P_Falcon(char **argv, int argc){
 
   if(P->nModels == 0){
     fprintf(stderr, "Error: at least you need to use a context model!\n");
-    return EXIT_FAILURE;
+    exit(1);
   }
 
   // READ MODEL PARAMETERS FROM XARGS & ARGS

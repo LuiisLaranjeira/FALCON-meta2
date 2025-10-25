@@ -23,6 +23,7 @@ typedef struct{
   U8       force;
   U8       estim;
   U8       level;
+  U8       invert;
   #ifdef LOCAL_SIMILARITY
   U8       local;
   char     *outLoc;
@@ -50,6 +51,7 @@ typedef struct{
   TOP      *top;
   uint8_t  *image;
   char     *output;
+  char     *output2;
   char     *base;
   // ===============
   U8       saveModel;   // Flag to save models after compression

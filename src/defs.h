@@ -36,6 +36,8 @@ typedef int8_t   I8;
 
 #define RELEASE                2
 #define VERSION                3
+#define MAGNET_RELEASE         2
+#define MAGNET_VERSION         23
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -52,6 +54,7 @@ typedef int8_t   I8;
 #define DEFAULT_HELP           0
 #define DEFAULT_VERBOSE        0
 #define DEFAULT_FORCE          0
+#define DEFAULT_INVERT         0
 #define DEFAULT_LOCAL          0
 #define DEFAULT_LEVEL          47
 #define DEFAULT_SHOWS          1
